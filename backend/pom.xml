@@ -1,0 +1,71 @@
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+
+  <modelVersion>4.0.0</modelVersion>
+
+  <!--Spring Boot parent: gestisce versioni e build -->
+  <parent>
+    <groupId>org.springframework.boot</groupId>
+    <artifactId>spring-boot-starter-parent</artifactId>
+    <version>3.3.2</version>
+    <relativePath/>
+  </parent>
+
+  <!-- Info progetto -->
+  <groupId>com.sweng.notes</groupId>
+  <artifactId>note-backend</artifactId>
+  <version>1.0-SNAPSHOT</version>
+  <name>note-backend</name>
+  <description>Spring Boot backend con MapDB per la Note App</description>
+  <packaging>jar</packaging>
+
+  <!-- Impostazioni Java -->
+  <properties>
+    <java.version>17</java.version>
+  </properties>
+
+  <!-- Dipendenze -->
+  <dependencies>
+
+    <!-- Spring Boot Web Starter: per creare API REST -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-web</artifactId>
+    </dependency>
+
+    <!-- MapDB per persistenza locale -->
+    <dependency>
+      <groupId>org.mapdb</groupId>
+      <artifactId>mapdb</artifactId>
+      <version>3.0.9</version>
+    </dependency>
+
+    <!-- Gson -->
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.10.1</version>
+    </dependency>
+
+    <!-- JUnit 5 per test -->
+    <dependency>
+      <groupId>org.springframework.boot</groupId>
+      <artifactId>spring-boot-starter-test</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+  </dependencies>
+
+  <!-- Plugin di build -->
+  <build>
+    <plugins>
+      <!-- Avvio semplificato con mvn spring-boot:run -->
+      <plugin>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-maven-plugin</artifactId>
+      </plugin>
+    </plugins>
+  </build>
+
+</project>
