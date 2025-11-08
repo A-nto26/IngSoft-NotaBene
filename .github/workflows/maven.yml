@@ -1,0 +1,33 @@
+name: Java CI - Maven Build
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  build:
+    name: Build, Test and Report
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: "temurin"
+          java-version: "17"
+
+      - name: Build and Run Tests
+        run: mvn -B -f backend/pom.xml clean verify
+
+      - name: Generate Test Summary
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: JUnit Tests
+          path: backend/target/surefire-reports/*.xml
+          reporter: java-junit
