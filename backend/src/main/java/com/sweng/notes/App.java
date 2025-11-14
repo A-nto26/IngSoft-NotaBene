@@ -4,9 +4,9 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class NoteBackendApplication {
-
+public class App {
     public static void main(String[] args) {
-        SpringApplication.run(NoteBackendApplication.class, args);
+        SpringApplication.run(App.class, args);
+        System.out.println("Backend Spring Boot avviato su http://localhost:8080");
     }
 }
