@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <title>Accesso - Nota Bene</title>
+  <link rel="stylesheet" href="css/auth.css" />
+</head>
+<body>
+
+  <div class="auth-container">
+
+    <!-- LOGIN -->
+    <div id="loginSection">
+      <h2>Accedi</h2>
+
+      <input type="text" id="username" placeholder="Username">
+      <input type="password" id="password" placeholder="Password">
+      <button id="loginBtn">Accedi</button>
+
+      <p>Non hai un account?
+        <a href="#" id="showRegister">Registrati</a>
+      </p>
+
+      <p id="msg"></p>
+    </div>
+
+    <!-- REGISTER -->
+    <div id="registerSection" class="hidden">
+      <h2>Registrati</h2>
+
+      <input type="text" id="newUsername" placeholder="Username">
+      <input type="password" id="newPassword" placeholder="Password">
+      <input type="password" id="confirmPassword" placeholder="Conferma password">
+
+      <button id="registerBtn">Crea account</button>
+
+      <p>Hai già un account?
+        <a href="#" id="showLogin">Accedi</a>
+      </p>
+
+      <p id="msgRegister"></p>
+    </div>
+
+  </div>
+
+  <script src="js/auth.js"></script>
+</body>
+</html>

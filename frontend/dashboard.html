@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8">
+  <title>Dashboard - Nota Bene</title>
+  <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+
+  <header>
+    <h1>Le mie note</h1>
+    <div class="user-info">
+      <span id="welcomeUser"></span>
+      <button id="logoutBtn">Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <h2>Crea una nuova nota</h2>
+
+    <input id="titolo" placeholder="Titolo della nota"><br><br>
+    <textarea id="contenuto" placeholder="Contenuto della nota"></textarea><br><br>
+
+    <button id="createNoteBtn">Crea Nota</button>
+
+    <hr>
+
+    <h2>Le tue note</h2>
+    <ul id="noteList"></ul>
+  </main>
+
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
