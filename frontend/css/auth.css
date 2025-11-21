@@ -1,0 +1,98 @@
+/* 
+   LAYOUT BASE
+ */
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+}
+
+/* 
+   CARD CENTRALE
+*/
+#loginSection,
+#registerSection {
+  background: white;
+  padding: 25px 30px;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+  width: 320px;
+}
+
+/* Nasconde la sezione non attiva */
+.hidden {
+  display: none;
+}
+
+/* 
+   TITOLI
+ */
+h2 {
+  text-align: center;
+  margin-bottom: 20px;
+  color: #333;
+}
+
+/* 
+   INPUT
+ */
+input {
+  width: 100%;
+  padding: 10px;
+  margin-top: 8px;
+  margin-bottom: 15px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+/* 
+   BOTTONI
+ */
+button {
+  width: 100%;
+  padding: 10px;
+  background: #145385;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 15px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+button:hover {
+  background: #0f4369;
+}
+
+/* Bottoncino link switch login/registrazione */
+#showRegister,
+#showLogin {
+  margin-top: 15px;
+  background: transparent;
+  color: #145385;
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+#showRegister:hover,
+#showLogin:hover {
+  text-decoration: underline;
+}
+
+/*
+   MESSAGGI
+*/
+#msg,
+#msgRegister {
+  color: #b30000;
+  text-align: center;
+  margin-top: 10px;
+  font-size: 14px;
+}

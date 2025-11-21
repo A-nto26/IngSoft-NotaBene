@@ -2,48 +2,47 @@ package com.sweng.notes.controller;
 
 import com.sweng.notes.model.Note;
 import com.sweng.notes.service.NoteService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-public class NoteControllerTest {
-
-    private NoteService noteService;
-    private NoteController controller;
-
-    @BeforeEach
-    void setup() {
-        noteService = Mockito.mock(NoteService.class);
-        controller = new NoteController(noteService);
-    }
+class NoteControllerTest {
 
     @Test
     void testCreateNote() {
-        Note mock = new Note(1, "T", "C", "mario");
-        when(noteService.create("T", "C", "mario")).thenReturn(mock);
+        NoteService service = new NoteService(new com.sweng.notes.repository.NoteRepository());
+        NoteController controller = new NoteController(service);
 
-        ResponseEntity<Note> response = controller.create("T", "C", "mario");
+        ResponseEntity<Note> res = controller.create("Titolo", "Contenuto", "user1", "casa");
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("T", response.getBody().getTitolo());
+        assertEquals(200, res.getStatusCode().value());
+        assertEquals("Titolo", res.getBody().getTitolo());
     }
 
     @Test
     void testGetByUser() {
-        when(noteService.getByUser("anna"))
-                .thenReturn(List.of(new Note(1, "A", "B", "anna")));
+        NoteService service = new NoteService(new com.sweng.notes.repository.NoteRepository());
+        NoteController controller = new NoteController(service);
 
-        ResponseEntity<List<Note>> response = controller.getByUser("anna");
+        controller.create("A", "B", "user1", "");
+        controller.create("C", "D", "user2", "");
 
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals(1, response.getBody().size());
-        assertEquals("anna", response.getBody().get(0).getCreatore());
+        ResponseEntity<List<Note>> res = controller.getByUser("user1");
+
+        assertEquals(1, res.getBody().size());
+    }
+
+    @Test
+    void testDeleteNote() {
+        NoteService service = new NoteService(new com.sweng.notes.repository.NoteRepository());
+        NoteController controller = new NoteController(service);
+
+        Note n = controller.create("Titolo", "Contenuto", "user1", "").getBody();
+        controller.delete(n.getId());
+
+        assertTrue(controller.getByUser("user1").getBody().isEmpty());
     }
 }

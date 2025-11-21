@@ -2,47 +2,64 @@ package com.sweng.notes.service;
 
 import com.sweng.notes.model.Note;
 import com.sweng.notes.repository.NoteRepository;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
 
-public class NoteServiceTest {
-
-    private NoteRepository noteRepo;
-    private NoteService noteService;
-
-    @BeforeEach
-    void setup() {
-        noteRepo = Mockito.mock(NoteRepository.class);
-        noteService = new NoteService(noteRepo);
-    }
+class NoteServiceTest {
 
     @Test
     void testCreateNote() {
-        Note mockNote = new Note(1, "Titolo", "Contenuto", "mario");
+        NoteRepository repo = new NoteRepository();
+        NoteService service = new NoteService(repo);
 
-        when(noteRepo.save("Titolo", "Contenuto", "mario")).thenReturn(mockNote);
+        Note n = service.create("Titolo", "Contenuto", "user1", "casa");
 
-        Note result = noteService.create("Titolo", "Contenuto", "mario");
-
-        assertNotNull(result);
-        assertEquals("Titolo", result.getTitolo());
-        verify(noteRepo, times(1)).save("Titolo", "Contenuto", "mario");
+        assertNotNull(n);
+        assertEquals("Titolo", n.getTitolo());
+        assertEquals("casa", n.getCartella());
     }
 
     @Test
-    void testGetByUserReturnsList() {
-        when(noteRepo.findByCreatore("anna"))
-                .thenReturn(List.of(new Note(1, "A", "B", "anna")));
+    void testUpdateNote() {
+        NoteRepository repo = new NoteRepository();
+        NoteService service = new NoteService(repo);
 
-        List<Note> result = noteService.getByUser("anna");
+        Note n = service.create("T1", "C1", "user1", "");
 
+        service.update(n.getId(), "T2", "C2");
+
+        Note updated = repo.findById(n.getId());
+        assertEquals("T2", updated.getTitolo());
+        assertEquals("C2", updated.getContenuto());
+    }
+
+    @Test
+    void testDuplicateNote() {
+        NoteRepository repo = new NoteRepository();
+        NoteService service = new NoteService(repo);
+
+        Note n = service.create("Originale", "Test", "user1", "casa");
+
+        Note copia = service.duplicate(n.getId(), "user2");
+
+        assertNotNull(copia);
+        assertNotEquals(n.getId(), copia.getId());
+        assertEquals("Originale (Copia)", copia.getTitolo());
+        assertEquals("user2", copia.getCreatore());
+    }
+
+    @Test
+    void testSearch() {
+        NoteRepository repo = new NoteRepository();
+        NoteService service = new NoteService(repo);
+
+        service.create("Fare la spesa", "Compra latte", "user1", "");
+        service.create("Lavoro", "Preparare slides", "user1", "");
+
+        List<Note> result = service.search("user1", "latte");
         assertEquals(1, result.size());
-        assertEquals("anna", result.get(0).getCreatore());
     }
 }

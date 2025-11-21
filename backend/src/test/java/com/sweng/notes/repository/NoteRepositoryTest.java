@@ -7,32 +7,51 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class NoteRepositoryTest {
+class NoteRepositoryTest {
 
     @Test
-    void testSaveAssignsIdIncrementally() {
+    void testSaveAndFindById() {
         NoteRepository repo = new NoteRepository();
 
-        Note n1 = repo.save("t1", "c1", "mario");
-        Note n2 = repo.save("t2", "c2", "anna");
+        Note n = new Note(0, "Titolo", "Contenuto", "user1", "lavoro");
+        repo.save(n);
 
-        assertEquals(1, n1.getId());
-        assertEquals(2, n2.getId());
+        Note found = repo.findById(n.getId());
+        assertNotNull(found);
+        assertEquals("Titolo", found.getTitolo());
     }
 
     @Test
     void testFindByCreatore() {
         NoteRepository repo = new NoteRepository();
 
-        repo.save("A", "B", "mario");
-        repo.save("C", "D", "anna");
-        repo.save("E", "F", "mario");
+        repo.save(new Note(0, "A", "C", "user1", ""));
+        repo.save(new Note(0, "B", "C", "user1", ""));
+        repo.save(new Note(0, "C", "C", "user2", ""));
 
-        List<Note> result = repo.findByCreatore("mario");
+        List<Note> notes = repo.findByCreatore("user1");
+        assertEquals(2, notes.size());
+    }
 
-        assertEquals(2, result.size());
-        for (Note n : result) {
-            assertEquals("mario", n.getCreatore());
-        }
+    @Test
+    void testSearchByUser() {
+        NoteRepository repo = new NoteRepository();
+
+        repo.save(new Note(0, "Spesa", "Compra latte", "user1", ""));
+        repo.save(new Note(0, "Lavoro", "Preparare meeting", "user1", ""));
+
+        List<Note> result = repo.searchByUser("user1", "latte");
+        assertEquals(1, result.size());
+    }
+
+    @Test
+    void testDelete() {
+        NoteRepository repo = new NoteRepository();
+
+        Note n = new Note(0, "Titolo", "Contenuto", "user1", "");
+        repo.save(n);
+        repo.delete(n.getId());
+
+        assertNull(repo.findById(n.getId()));
     }
 }

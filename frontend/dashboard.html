@@ -5,10 +5,12 @@
   <title>Dashboard - Nota Bene</title>
   <link rel="stylesheet" href="css/dashboard.css">
 </head>
+
 <body>
 
   <header>
     <h1>Le mie note</h1>
+
     <div class="user-info">
       <span id="welcomeUser"></span>
       <button id="logoutBtn">Logout</button>
@@ -16,17 +18,38 @@
   </header>
 
   <main>
+
+    
+    <!--     CREA NUOVA NOTA       -->
     <h2>Crea una nuova nota</h2>
 
+    <label for="titolo"><strong>Titolo</strong></label><br>
     <input id="titolo" placeholder="Titolo della nota"><br><br>
+
+    <label for="contenuto"><strong>Contenuto</strong></label><br>
     <textarea id="contenuto" placeholder="Contenuto della nota"></textarea><br><br>
+
+    <label for="cartella"><strong>Cartella (opzionale)</strong></label><br>
+    <input id="cartella" placeholder="Nome della cartella"><br><br>
 
     <button id="createNoteBtn">Crea Nota</button>
 
     <hr>
 
+    
+    <!--       RICERCA NOTE        -->
+    <h2>Cerca tra le tue note</h2>
+
+    <input id="searchInput" placeholder="Cerca titolo o contenuto...">
+    <button id="searchBtn">🔍 Cerca</button>
+
+    <hr>
+    
+   <!-- NOTE -->
     <h2>Le tue note</h2>
+
     <ul id="noteList"></ul>
+
   </main>
 
   <script src="js/dashboard.js"></script>

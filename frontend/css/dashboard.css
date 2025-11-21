@@ -1,0 +1,164 @@
+/* 
+   LAYOUT GENERALE
+ */
+body {
+  font-family: Arial, sans-serif;
+  background: #f4f4f4;
+  margin: 0;
+  padding: 0;
+}
+
+/* 
+   HEADER
+ */
+header {
+  background: #145385;
+  color: white;
+  padding: 15px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+header h1 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+#welcomeUser {
+  font-weight: bold;
+}
+
+#logoutBtn {
+  background: #f44336;
+  border: none;
+  padding: 7px 12px;
+  color: white;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+#logoutBtn:hover {
+  background: #c62828;
+}
+
+/* 
+   MAIN CONTENT
+ */
+main {
+  padding: 20px;
+  max-width: 700px;
+  margin: auto;
+}
+
+/* 
+   INPUT & TEXTAREA
+ */
+input,
+textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid #bbb;
+  border-radius: 6px;
+  font-size: 14px;
+  margin-top: 6px;
+}
+
+textarea {
+  resize: vertical;
+  height: 100px;
+}
+
+/* 
+   CREATE BUTTON
+ */
+#createNoteBtn {
+  width: 100%;
+  padding: 10px;
+  margin-top: 10px;
+  background: #145385;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: 0.2s;
+}
+
+#createNoteBtn:hover {
+  background: #0f4369;
+}
+
+/* 
+   LISTA NOTE
+ */
+#noteList {
+  list-style: none;
+  padding: 0;
+  margin-top: 20px;
+}
+
+#noteList li {
+  background: white;
+  padding: 15px;
+  margin-bottom: 12px;
+  border-radius: 8px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+}
+
+#noteList strong {
+  font-size: 16px;
+  color: #333;
+}
+
+#noteList em {
+  color: #555;
+}
+
+/* 
+   BOTTONI AZIONI SULLE NOTE
+*/
+#noteList button {
+  margin-top: 8px;
+  margin-right: 5px;
+  padding: 6px 10px;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 13px;
+  transition: 0.2s;
+}
+
+/* — Elimina — */
+#noteList button:nth-of-type(1) {
+  background: #e63946;
+  color: white;
+}
+#noteList button:nth-of-type(1):hover {
+  background: #c62828;
+}
+
+/* — Duplica — */
+#noteList button:nth-of-type(2) {
+  background: #2a9d8f;
+  color: white;
+}
+#noteList button:nth-of-type(2):hover {
+  background: #1d6f63;
+}
+
+/* — Modifica — */
+#noteList button:nth-of-type(3) {
+  background: #ffb703;
+  color: #333;
+}
+#noteList button:nth-of-type(3):hover {
+  background: #d99602;
+}
