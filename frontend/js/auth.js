@@ -14,10 +14,11 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
 
-  const res = await fetch(
-    `http://localhost:8080/api/users/login?username=${username}&password=${password}`,
-    { method: "POST" }
-  );
+  const res = await fetch("http://localhost:8080/api/users/login", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+  });
 
   const text = await res.text();
 
@@ -40,10 +41,11 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
     return;
   }
 
-  const res = await fetch(
-    `http://localhost:8080/api/users/register?username=${username}&password=${password}`,
-    { method: "POST" }
-  );
+  const res = await fetch("http://localhost:8080/api/users/register", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
+  });
 
   const text = await res.text();
   document.getElementById("msgRegister").textContent = text;
