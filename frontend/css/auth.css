@@ -1,98 +1,283 @@
-/* 
-   LAYOUT BASE
- */
+/* =====================================================
+    VARIABILI GLOBALI
+   ===================================================== */
+:root {
+  --mint: #67BDB4;
+  --blue: #809BF2;
+  --red: #EE5B60;
+  --yellow: #EEC558;
+  --green: #84D879;
+  --orange: #ED802D;
+  --panel: #fffdfa;
+  --text: #2c2c2c;
+  --border: #c4b8a4;
+  --shadow: rgba(0, 0, 0, 0.15);
+}
+
+
+/* =====================================================
+   SFONDO GENERALE
+   ===================================================== */
 body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
   margin: 0;
-  padding: 0;
+  font-family: "Poppins", sans-serif;
+  min-height: 100vh;
+
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
+
+  background-color: #fdfdfc;
+  background-image: url("../img/Hot Tropics.jpg");
+  background-size: 40px 40px;
+  background-repeat: repeat;
+  color: var(--text);
 }
 
-/* 
-   CARD CENTRALE
-*/
-#loginSection,
-#registerSection {
-  background: white;
-  padding: 25px 30px;
+
+/* =====================================================
+   LAYOUT GENERALE WRAPPER
+   ===================================================== */
+.auth-wrapper {
+  display: flex;
+  width: 900px;
+  height: 540px;
+
+  border-radius: 22px;
+  overflow: hidden;
+
+  background: var(--panel);
+  border: 4px solid var(--orange);
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
+
+  animation: popup 0.25s ease;
+}
+
+@keyframes popup {
+  from { transform: scale(0.95); opacity: 0; }
+  to   { transform: scale(1); opacity: 1; }
+}
+
+
+/* =====================================================
+   COLONNA SINISTRA (logo + slogan)
+   ===================================================== */
+.auth-side {
+  flex: 1;
+  padding: 2rem;
+
+  background: linear-gradient(180deg, var(--mint), var(--blue));
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  position: relative;
+}
+
+.auth-side::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  backdrop-filter: blur(2px);
+
+  border-radius: 0 80px 80px 0;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.logo-container {
+  position: relative;
+  text-align: center;
+  z-index: 1;
+}
+
+.logo {
+  width: 240px;
+  height: auto;
+
+  border-radius: 20px;
+  filter: brightness(0.98);
+
+  box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  animation: float 4s ease-in-out infinite;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+
+.logo-container h2 {
+  color: #fff;
+  margin-top: 1.2rem;
+  font-weight: 500;
+  font-size: 1.2rem;
+  line-height: 1.4rem;
+}
+
+
+/* =====================================================
+    COLONNA DESTRA (form login + register)
+   ===================================================== */
+.auth-form {
+  flex: 1;
+  padding: 3rem;
+
+  background: #fffdf9;
+
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+
+  position: relative;
+}
+
+.auth-form::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  opacity: 0.05;
+  pointer-events: none;
+}
+
+
+/* =====================================================
+    TITOLI E DESCRIZIONI FORM
+   ===================================================== */
+.auth-form h1 {
+  font-size: 1.8rem;
+  color: var(--orange);
+  text-align: center;
+  margin-bottom: 0.3rem;
+}
+
+.subtitle {
+  text-align: center;
+  color: #666;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+}
+
+
+/* =====================================================
+    INPUT
+   ===================================================== */
+input {
+  width: 100%;
+  padding: 0.8rem;
+  margin-bottom: 1rem;
+
+  border: 2px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
-  width: 320px;
+
+  background: #fffdfa;
+  font-size: 1rem;
+
+  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.06);
+  transition: all 0.25s ease;
 }
 
-/* Nasconde la sezione non attiva */
+input:focus {
+  outline: none;
+  border-color: var(--orange);
+  box-shadow: 0 0 6px rgba(237, 128, 45, 0.4);
+}
+
+
+/* =====================================================
+    BUTTON PRIMARIO
+   ===================================================== */
+.primary-btn {
+  background-color: var(--orange);
+  color: white;
+
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+
+  width: 100%;
+  padding: 0.9rem;
+
+  font-size: 1rem;
+  font-weight: 600;
+
+  cursor: pointer;
+  transition: 0.3s;
+
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+}
+
+.primary-btn:hover {
+  background-color: var(--yellow);
+  color: var(--text);
+  transform: translateY(-2px);
+}
+
+
+/* =====================================================
+    LINK SWITCH LOGIN <-> REGISTER
+   ===================================================== */
+.switch-text {
+  margin-top: 1rem;
+  font-size: 0.9rem;
+  text-align: center;
+  color: #444;
+}
+
+.switch-text a {
+  color: var(--orange);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.switch-text a:hover {
+  text-decoration: underline;
+}
+
+
+/* =====================================================
+    NASCONDI SEZIONE
+   ===================================================== */
 .hidden {
   display: none;
 }
 
-/* 
-   TITOLI
- */
-h2 {
-  text-align: center;
-  margin-bottom: 20px;
-  color: #333;
-}
 
-/* 
-   INPUT
- */
-input {
-  width: 100%;
-  padding: 10px;
-  margin-top: 8px;
-  margin-bottom: 15px;
-  border: 1px solid #ccc;
-  border-radius: 6px;
-  font-size: 14px;
-}
-
-/* 
-   BOTTONI
- */
-button {
-  width: 100%;
-  padding: 10px;
-  background: #145385;
-  color: white;
-  border: none;
-  border-radius: 6px;
-  font-size: 15px;
-  cursor: pointer;
-  transition: 0.2s;
-}
-
-button:hover {
-  background: #0f4369;
-}
-
-/* Bottoncino link switch login/registrazione */
-#showRegister,
-#showLogin {
-  margin-top: 15px;
-  background: transparent;
-  color: #145385;
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-}
-
-#showRegister:hover,
-#showLogin:hover {
-  text-decoration: underline;
-}
-
-/*
-   MESSAGGI
-*/
+/* =====================================================
+   MESSAGGI DI ERRORE / SUCCESSO
+   ===================================================== */
 #msg,
 #msgRegister {
-  color: #b30000;
+  margin-top: 0.8rem;
   text-align: center;
-  margin-top: 10px;
-  font-size: 14px;
+  font-size: 0.9rem;
+}
+
+
+/* =====================================================
+    RESPONSIVE
+   ===================================================== */
+@media (max-width: 900px) {
+  .auth-wrapper {
+    flex-direction: column;
+    width: 90%;
+    height: auto;
+  }
+
+  .auth-side {
+    border-radius: 22px 22px 0 0;
+    padding: 1.5rem;
+  }
+
+  .auth-side::before {
+    border-radius: 22px 22px 0 0;
+  }
+
+  .auth-form {
+    padding: 2rem;
+  }
+
+  .logo {
+    width: 180px;
+  }
 }

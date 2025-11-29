@@ -1,6 +1,11 @@
 package com.sweng.notes.controller;
 
+import com.sweng.notes.dto.UserRequest;
+import com.sweng.notes.dto.UserResponse;
 import com.sweng.notes.service.UserService;
+
+import java.util.List;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,17 +20,47 @@ public class UserController {
         this.userService = userService;
     }
 
+    // ============================================================
+    // GET ALL USERS (per la condivisione note)
+    // ============================================================
+    @GetMapping
+    public ResponseEntity<List<String>> getAllUsers() {
+        return ResponseEntity.ok(userService.getAllUsernames());
+    }
+    
+    // ============================================================
+    // REGISTER
+    // ============================================================
     @PostMapping("/register")
-    public ResponseEntity<String> register(@RequestParam String username, @RequestParam String password) {
-        boolean ok = userService.register(username, password);
-        return ok ? ResponseEntity.ok("Registrazione completata")
-                  : ResponseEntity.badRequest().body("Registrazione fallita");
+    public ResponseEntity<UserResponse> register(@RequestBody UserRequest req) {
+
+        boolean ok = userService.register(req.getUsername(), req.getPassword());
+
+        if (!ok) {
+            return ResponseEntity.badRequest()
+                    .body(new UserResponse(false, "❌ Registrazione fallita (utente esistente o dati invalidi)"));
+        }
+
+        return ResponseEntity.ok(
+                new UserResponse(true, "✔ Registrazione completata", req.getUsername())
+        );
     }
 
+    // ============================================================
+    // LOGIN
+    // ============================================================
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestParam String username, @RequestParam String password) {
-        boolean ok = userService.login(username, password);
-        return ok ? ResponseEntity.ok("Login corretto")
-                  : ResponseEntity.badRequest().body("Credenziali invalide");
+    public ResponseEntity<UserResponse> login(@RequestBody UserRequest req) {
+
+        boolean ok = userService.login(req.getUsername(), req.getPassword());
+
+        if (!ok) {
+            return ResponseEntity.badRequest()
+                    .body(new UserResponse(false, "❌ Credenziali non valide"));
+        }
+
+        return ResponseEntity.ok(
+                new UserResponse(true, "✔ Login effettuato", req.getUsername())
+        );
     }
 }

@@ -1,164 +1,1085 @@
-/* 
-   LAYOUT GENERALE
- */
-body {
-  font-family: Arial, sans-serif;
-  background: #f4f4f4;
-  margin: 0;
-  padding: 0;
+/* ============================================================
+   1. VARIABILI GLOBALI
+   ============================================================ */
+:root {
+  --mint: #67BDB4;
+  --blue: #809BF2;
+  --red: #EE5B60;
+  --yellow: #EEC558;
+  --green: #84D879;
+  --orange: #ED802D;
+  --panel: #fffdfa;
+  --text: #2c2c2c;
+  --border: #c4b8a4;
+  --shadow: rgba(0, 0, 0, 0.1);
 }
 
-/* 
-   HEADER
- */
+/* ============================================================
+   2. STRUTTURA BASE / BODY
+   ============================================================ */
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #fdfdfc;
+  background-image: url("../img/Hot Tropics.jpg");
+  background-size: 40px 40px;
+  background-repeat: repeat;
+  color: var(--text);
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ============================================================
+   2bis. GLOBAL MESSAGE (toast in alto sotto l'header)
+   ============================================================ */
+.global-msg {
+  max-width: 600px;
+  margin: 0.5rem auto 0.3rem auto;
+  padding: 0.6rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.18);
+  text-align: center;
+}
+
+.msg-success {
+  background: #e8f8f0;
+  color: #1e8449;
+  border: 1px solid #1e8449;
+}
+
+.msg-error {
+  background: #fdecea;
+  color: #c0392b;
+  border: 1px solid #c0392b;
+}
+
+.msg-info {
+  background: #e8f4fd;
+  color: #21618c;
+  border: 1px solid #21618c;
+}
+
+/* Loader note */
+.loading-notes {
+  text-align: center;
+  padding: 1rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+  color: #555;
+}
+
+/* ============================================================
+   TOAST - NOTIFICHE IN ALTO A DESTRA
+   ============================================================ */
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.toast {
+  min-width: 260px;
+  max-width: 340px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 500;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
+  opacity: 0;
+  transform: translateX(40px);
+  animation: toastIn 0.4s forwards, toastOut 0.4s ease-in-out 10s forwards;
+}
+
+.toast-success { background: #2ecc71; }
+.toast-error   { background: #e74c3c; }
+.toast-info    { background: #3498db; }
+
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(40px); }
+}
+
+/* ============================================================
+   3. HEADER
+   ============================================================ */
 header {
-  background: #145385;
+  background: linear-gradient(180deg, #2b2b3b, #1c1c27);
   color: white;
-  padding: 15px 20px;
+  border-bottom: 4px solid #111;
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 1rem 2rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
 header h1 {
+  color: var(--yellow);
+  font-weight: 600;
   margin: 0;
-  font-size: 22px;
 }
 
 .user-info {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 1rem;
 }
 
-#welcomeUser {
-  font-weight: bold;
-}
-
-#logoutBtn {
-  background: #f44336;
-  border: none;
-  padding: 7px 12px;
-  color: white;
+.logout {
+  background: var(--yellow);
+  border: 1px solid var(--orange);
+  padding: 0.5rem 0.9rem;
   border-radius: 6px;
+  color: #2c2c2c;
   cursor: pointer;
-  transition: 0.2s;
+  font-weight: 500;
+  transition: all 0.25s ease;
 }
-
-#logoutBtn:hover {
-  background: #c62828;
-}
-
-/* 
-   MAIN CONTENT
- */
-main {
-  padding: 20px;
-  max-width: 700px;
-  margin: auto;
-}
-
-/* 
-   INPUT & TEXTAREA
- */
-input,
-textarea {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #bbb;
-  border-radius: 6px;
-  font-size: 14px;
-  margin-top: 6px;
-}
-
-textarea {
-  resize: vertical;
-  height: 100px;
-}
-
-/* 
-   CREATE BUTTON
- */
-#createNoteBtn {
-  width: 100%;
-  padding: 10px;
-  margin-top: 10px;
-  background: #145385;
+.logout:hover {
+  background: var(--orange);
   color: white;
-  border: none;
-  border-radius: 6px;
+}
+
+
+/* ============================================================
+   4. TOOLS PANEL – VERSIONE OTTIMIZZATA E DEFINITIVA
+   ============================================================ */
+#toolsPanel {
+  width: 100%;
+  padding: 1.2rem 0;
+  margin: 0;
+  background: rgba(255, 255, 255, 0.92);
+  border-bottom: 2px solid #ddd;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+  z-index: 4;
+  position: relative;
+}
+
+#toolsPanelInner {
+  max-width: 1150px;
+  width: 100%;
+  margin: 0 auto;
+  padding: 0 1.2rem;
+}
+
+/* === Riga 1 → Search + titolo === */
+#toolsHeaderRow {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.tools-title {
+  font-size: 1.15rem;
+  font-weight: 600;
+  margin-right: 1rem;
+  color: #2c3e50;
+}
+
+/* Search */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fffdfa;
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  padding: 0.55rem 0.9rem;
+  width: 480px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+}
+
+/* === Riga 2 → Toggle + Cartelle === */
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 2rem;
+  flex-wrap: wrap;
+  margin-top: 0.6rem;
+  margin-bottom: 0.8rem;
+}
+
+.filter-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  gap: 0.6rem;
+  font-size: 0.95rem;
+  color: var(--text);
+}
+
+/* contenitore */
+.toggle-switch {
+  position: relative;
+  display: inline-block;
+  width: 48px;
+  height: 26px;
+}
+
+/* input invisibile */
+.toggle-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* sfondo del toggle */
+.toggle-switch .slider {
+  position: absolute;
   cursor: pointer;
-  font-size: 15px;
-  transition: 0.2s;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: #ccc;                
+  border-radius: 26px;
+  transition: all 0.25s ease;
+  border: 2px solid #bbb;
 }
 
-#createNoteBtn:hover {
-  background: #0f4369;
+/* pallina */
+.toggle-switch .slider::before {
+  content: "";
+  position: absolute;
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  top: 50%;
+  transform: translateY(-50%);
+  background-color: white;
+  border-radius: 50%;
+  transition: all 0.25s ease;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.25);
 }
 
-/* 
-   LISTA NOTE
- */
-#noteList {
-  list-style: none;
-  padding: 0;
-  margin-top: 20px;
+/* === STATO ON === */
+.toggle-switch input:checked + .slider {
+  background: var(--blue);          
+  border-color: var(--blue);
 }
 
-#noteList li {
-  background: white;
-  padding: 15px;
-  margin-bottom: 12px;
+.toggle-switch input:checked + .slider::before {
+  transform: translate(22px, -50%);
+}
+
+/* Bottone cartelle */
+.cartelle-btn {
+  padding: 0.45rem 0.8rem;
+  background:#6a6af7;
+  border: 2px solid #4e4eb5;
+  color: white;
+  font-weight: 600;
+  border-radius: 8px; 
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.cartelle-btn:hover {
+  background: #6767d6;
+}
+
+/* === Pulsante + / − === */
+#toolsFooterRow {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: 0.3rem;
+  padding-bottom: 0.3rem;
+  position: relative;
+  height: 0;
+}
+
+.tools-toggle-btn {
+  position: absolute;
+  top: -20px;
+  right: 10px;
+  z-index: 5 !important;
+  width: auto;
+  height: auto;
+  padding: 0.35rem 0.9rem;
+  background: #ffffff;
+  border: 2px solid #d0d0d0;
   border-radius: 8px;
-  box-shadow: 0 3px 6px rgba(0,0,0,0.08);
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #2c3e50; /* colore uguale a Tools: */
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.2s ease;
 }
 
-#noteList strong {
-  font-size: 16px;
+/* Hover */
+.tools-toggle-btn:hover {
+  background: #f1f1f1;
+  transform: scale(1.06);
+}
+
+/* Tooltip */
+.tools-toggle-btn::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  top: -28px;
+  right: 50%;
+  transform: translateX(50%);
+  background: #2c3e50;
+  color: white;
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 6px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.tools-toggle-btn:hover::after {
+  opacity: 1;
+}
+
+/* Animazione */
+#toolsContent {
+  overflow: hidden;
+  transition: max-height 0.28s ease, opacity 0.22s ease;
+}
+
+.toolsHidden {
+  max-height: 0 !important;
+  opacity: 0;
+}
+
+
+/* ============================================================
+   5. SEARCH BAR
+   ============================================================ */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: #fffdfa;
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  padding: 0.5rem 0.8rem;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+}
+
+.search-wrapper:focus-within {
+  border-color: var(--blue);
+  box-shadow: 0 4px 10px rgba(128, 155, 242, 0.25);
+}
+
+.search-icon {
+  font-size: 1.2rem;
+  color: var(--orange);
+}
+
+#searchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  width: 100%;
+  font-family: "Poppins", sans-serif;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+#searchInput::placeholder {
+  color: #999;
+  opacity: 0.9;
+}
+
+/* ============================================================
+   6. CONTENUTO PRINCIPALE / GRIGLIA
+   ============================================================ */
+main {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  padding: 2rem;
+  box-sizing: border-box;
+}
+
+#noteList {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  justify-content: center;
+}
+
+/* ============================================================
+   7. NOTE CARD (STILE + PERMESSI + ESPANSIONE)
+   ============================================================ */
+.note-card {
+  position: relative;
+  background: var(--panel);
+  border: 3px solid var(--red);
+  border-radius: 10px;
+  padding: 1.4rem;
+  box-shadow: 0 5px 12px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 240px;
+  max-width: 479.2px;
+  max-height: 298.4px;
+  box-sizing: border-box;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.3s ease, transform 0.25s ease;
+}
+
+.note-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, 0.25);
+}
+
+.note-card h2 {
+  font-size: 1.2rem;
+  color: var(--orange);
+  margin: 0 0 0.6rem 0;
+}
+
+.note-card p {
+  font-size: 0.95rem;
+  color: var(--text);
+  opacity: 0.9;
+  margin-bottom: 1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  transition: all 0.3s ease;
+}
+
+/* ---- Espansione ---- */
+.note-card.expanded {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(1.05);
+  width: 90%;
+  max-width: 600px;
+  max-height: 80vh;
+  z-index: 100;
+  background: white;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  border-color: var(--orange);
+  animation: fadeZoomIn 0.25s ease forwards;
+}
+
+.note-card.expanded p {
+  -webkit-line-clamp: unset;
+  line-clamp: unset;
+  overflow: visible;
+}
+
+/* ---- Permessi ---- */
+.note-card.shared-read {
+  border-color: var(--blue);
+  box-shadow: 0 4px 10px rgba(128, 155, 242, 0.25);
+}
+.note-card.shared-read .version-badge { background: var(--blue); }
+
+.note-card.shared-write {
+  border-color: var(--green);
+  box-shadow: 0 4px 10px rgba(132, 216, 121, 0.25);
+}
+.note-card.shared-write .version-badge { background: var(--green); }
+
+/* ---- Version Badge ---- */
+.version-badge {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: var(--blue);
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 6px 10px 4px;
+  border-radius: 4px 4px 0 0;
+  clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
+  text-transform: uppercase;
+  font-family: "Courier New", monospace;
+}
+
+/* ---- Overlay ---- */
+.note-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 90;
+  animation: fadeIn 0.2s ease;
+}
+
+/* Animazioni */
+@keyframes fadeZoomIn {
+  from { opacity: 0; transform: translate(-50%, -50%) scale(0.95); }
+  to   { opacity: 1; transform: translate(-50%, -50%) scale(1.05); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ============================================================
+   8. AZIONI (edit, elimina, versioni)
+   ============================================================ */
+.actions {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.6rem;
+  margin-top: 0.8rem;
+}
+
+.action-btn {
+  flex: 1;
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 0.5rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  box-shadow: 0 3px 6px rgba(0, 0, 0, 0.25);
+  transition: all 0.25s ease;
+}
+.action-btn.edit { background-color: #4a6df0; }
+.action-btn.version { background-color: #e66d14; }
+.action-btn.share { background-color: var(--mint); }
+.action-btn.delete { background-color: #e53935; }
+
+.action-btn:hover {
+  transform: translateY(-2px);
+  filter: brightness(1.1);
+}
+
+/* ============================================================
+   9. MODALI (Crea/Modifica, Share, Versioni)
+   ============================================================ */
+#noteModal,
+#shareModal,
+#versionModal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: none;
+  justify-content: center;
+  align-items: center;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(3px);
+  z-index: 200;
+}
+
+/* ---- Contenitore interno ---- */
+.modal-content {
+  background: var(--panel);
+  border: 4px solid var(--orange);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 480px;
+  max-width: 95%;
+  max-height: 85vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  animation: fadeIn 0.25s ease;
+  margin-top: 0.8rem;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+.modal-content h2 {
+  text-align: center;
+  color: var(--orange);
+  margin-top: 0;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+}
+
+/* ---- Campi ---- */
+.modal-content input,
+.modal-content textarea,
+.modal-content select {
+  width: 100%;
+  margin: 0.4rem 0;
+  padding: 0.6rem;
+  font-size: 0.95rem;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: #fffdfa;
+  color: var(--text);
+  box-sizing: border-box;
+}
+
+.modal-content textarea {
+  height: 100px;
+  resize: none;
+}
+
+/* ---- Contatore caratteri ---- */
+.textarea-wrapper { position: relative; }
+
+.char-counter {
+  position: absolute;
+  bottom: 20px;
+  right: 10px;
+  font-size: 0.8rem;
+  color: #999;
+  font-style: italic;
+}
+
+/* ---- Pulsanti ---- */
+.modal-content button {
+  border: none;
+  border-radius: 8px;
+  padding: 0.7rem 1.2rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  cursor: pointer;
+  margin: 0.3rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.25);
+}
+
+#saveNoteBtn { background-color: #28b463; color: white; }
+#cancelNoteBtn { background-color: #e74c3c; color: white; }
+#saveNoteBtn:hover { background-color: #1fa155; }
+#cancelNoteBtn:hover { background-color: #c0392b; }
+
+#duplicateBtn {
+  background-color: #EEC558;
+  color:  #f7f7f7;
+  border: 2px solid #c7a139;
+}
+
+#duplicateBtn:hover {
+  background-color: #d4a737;
+  color:  #f7f7f7;
+}
+
+#shareNoteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.55rem 1.2rem;
+  border-radius: 10px;
+  background: #7066F0;  
+  border: 2px solid #7066F0;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: 0.25s ease;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+}
+
+#shareNoteBtn:hover {
+  background: #5c53d8;   
+  border-color: #5c53d8;
+  transform: translateY(-2px);
+}
+
+/* ============================================
+   SHARE MODAL – Stile pillole selezionabili
+   ============================================ */
+
+/* Griglia utenti */
+.user-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+
+/* Contenitore della pillola (nasconde checkbox) */
+.user-item {
+  position: relative;
+  padding: 0;
+}
+
+/* Checkbox nascosta */
+.user-item input[type="checkbox"] {
+  display: none;
+}
+
+/* La pillola */
+.user-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.45rem 1rem;
+  border-radius: 20px;
+  border: 2px solid #d0cee8;
+  background: #f7f7ff;
+  color: #333;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  user-select: none;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* Stato selezionato */
+.user-item.selected .user-pill {
+  background: #7066F0;
+  border-color: #574de0;
+  color: white;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.18);
+  transform: translateY(-1px);
+}
+
+/* Hover */
+.user-pill:hover {
+  border-color: #7066F0;
+}
+
+/* ============================================
+   Share Modal – Bottoni finali
+   ============================================ */
+#shareSaveBtn {
+  background: #28b463;
+  color: white;
+}
+
+#shareSaveBtn:hover {
+  background: #1e8e4f;
+}
+
+#shareCancelBtn {
+  background: #e74c3c;
+  color: white;
+}
+
+#shareCancelBtn:hover {
+  background: #c0392b;
+}
+
+/* ---- Version Modal ---- */
+#versionModal .modal-content {
+  text-align: center;
+  border-color: var(--orange);
+  max-width: 600px;
+}
+
+#versionModal h2 {
+  color: var(--orange);
+  font-size: 1.4rem;
+  display: flex;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+#versionListModal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.4rem;
+  margin-top: 1rem;
+  max-height: 55vh;
+  overflow-y: auto;
+}
+
+/* ============================================================
+   10. NESSUN RISULTATO
+   ============================================================ */
+#noResults {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  z-index: 10;
+}
+
+.no-results {
+  background: var(--panel);
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  padding: 1rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 0.6rem;
+}
+
+/* ============================================================
+   11. WELCOME BOX + ARROW
+   ============================================================ */
+#welcomeEmpty {
+  position: fixed;
+  top: 180px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  background: #fffdfa;
+  border: 3px solid var(--orange);
+  border-radius: 20px;
+  padding: 1.8rem 2.5rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+  visibility: hidden;
+  opacity: 0;
+  z-index: 10;
+}
+
+#welcomeEmpty.show {
+  visibility: visible;
+  opacity: 1;
+}
+
+#welcomeEmpty h2 {
+  font-size: 1.6rem;
+  color: var(--orange);
+  margin-bottom: 0.4rem;
+  font-weight: 700;
+}
+
+.welcome-arrow {
+  position: fixed;
+  top: 300px;
+  left: 50%;
+  transform: translateX(-50%) rotate(10deg);
+  width: 240px;
+  opacity: 0.9;
+  z-index: 5;
+  animation: arrowFloat 1.8s ease-in-out infinite;
+}
+
+@keyframes arrowFloat {
+  0%, 100% { transform: translateX(-50%) rotate(10deg) translateY(0); }
+  50% { transform: translateX(-50%) rotate(10deg) translateY(8px); }
+}
+
+/* ============================================================
+   12. FOOTER
+   ============================================================ */
+footer {
+  background: var(--panel);
+  border-top: 3px solid var(--border);
+  text-align: center;
+  padding: 1rem;
+  position: fixed;
+  bottom: 0;
+  width: 100%;
+  z-index: 5;
+}
+
+.add-btn {
+  background: var(--orange);
+  border: 2px solid var(--orange);
+  padding: 0.7rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+.add-btn:hover {
+  background: var(--yellow);
+  color: var(--text);
+}
+
+/* ============================================================
+   13. MEDIA QUERY
+   ============================================================ */
+@media (max-width: 768px) {
+  #noteList {
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  }
+  .note-card {
+    max-width: 360px;
+    max-height: none;
+  }
+}
+
+/* =============================================
+   SIDE TUTORIAL – Pannello onboarding laterale
+   ============================================= */
+.tutorial-side {
+  position: fixed;
+  right: 260px;                 /* Spostato più a sinistra */
+  top: 160px;                   /* Altezza equilibrata */
+  width: 330px;
+  background: #ffffff;
+  border-radius: 14px;
+  padding: 1.7rem;
+  border: 3px solid var(--orange);
+  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
+  z-index: 5000;
+  
+  /* Animazione ingresso */
+  opacity: 0;
+  transform: translateX(40px);
+  animation: slideIn 0.35s ease-out forwards;
+}
+
+/* Animazione */
+@keyframes slideIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+.tutorial-side-title {
+  font-size: 1.45rem;
+  font-weight: 700;
+  color: var(--orange);
+  margin-bottom: 0.6rem;
+  text-align: center;
+}
+
+.tutorial-side-text {
+  margin: 0.45rem 0;
+  color: #444;
+  line-height: 1.4;
+  font-size: 1rem;
+}
+
+.tutorial-side-list {
+  margin-top: 0.8rem;
+  padding-left: 1rem;
+  font-size: 0.97rem;
+  line-height: 1.45;
   color: #333;
 }
 
-#noteList em {
-  color: #555;
+.tutorial-side-list li {
+  margin-bottom: 0.35rem;
 }
 
-/* 
-   BOTTONI AZIONI SULLE NOTE
-*/
-#noteList button {
-  margin-top: 8px;
-  margin-right: 5px;
-  padding: 6px 10px;
+/* Pulsante "Ho capito" */
+.tutorial-side-btn {
+  width: 100%;
+  margin-top: 1.2rem;
+  padding: 0.75rem 0.95rem;
+  background: #44e238;
   border: none;
-  border-radius: 6px;
+  border-radius: 10px;
+  color: white;
+  font-size: 1rem;
+  font-weight: 600;
   cursor: pointer;
-  font-size: 13px;
+  box-shadow: 0 3px 6px rgba(0,0,0,0.18);
+  transition: transform 0.22s ease, background 0.22s ease;
+}
+
+.tutorial-side-btn:hover {
+  background: #38b82f;
+  transform: scale(1.03);
+}
+
+/* ===============================
+   MODAL VERSIONI – Stilizzazione
+   =============================== */
+
+#versionModal .modal-content {
+  padding: 20px;
+  border-radius: 16px;
+  max-height: 80%;
+  overflow-y: auto;
+}
+
+#versionListModal {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 15px;
+}
+
+.version-item {
+  background: #ffffff;
+  border: 2px solid #e5e5e5;
+  border-radius: 14px;
+  padding: 20px;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08);
+}
+
+.version-item small {
+  display: block;
+  margin-bottom: 8px;
+  color: #666;
+}
+
+.version-item h3 {
+  font-size: 18px;
+  margin: 5px 0 10px;
+  font-weight: 600;
+  color: #333;
+}
+
+.version-item p {
+  margin-bottom: 15px;
+  color: #444;
+}
+
+.version-item .restore-btn {
+  display: block;
+  width: 100%;
+  padding: 10px 0;
+  font-size: 15px;
+  border-radius: 10px;
+  cursor: pointer;
+  background-color: #ff8d3b;
+  color: white;
+  border: none;
   transition: 0.2s;
 }
 
-/* — Elimina — */
-#noteList button:nth-of-type(1) {
-  background: #e63946;
-  color: white;
-}
-#noteList button:nth-of-type(1):hover {
-  background: #c62828;
+.version-item .restore-btn:hover {
+  background-color: #ff7a14;
 }
 
-/* — Duplica — */
-#noteList button:nth-of-type(2) {
-  background: #2a9d8f;
+.leave-btn {
+  background-color: #e74c3c;
   color: white;
-}
-#noteList button:nth-of-type(2):hover {
-  background: #1d6f63;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
 }
 
-/* — Modifica — */
-#noteList button:nth-of-type(3) {
-  background: #ffb703;
-  color: #333;
+.leave-btn:hover {
+  background-color: #c0392b;
 }
-#noteList button:nth-of-type(3):hover {
-  background: #d99602;
+
+.tutorial-mode .note-card,
+.tutorial-mode #addNoteBtn,
+.tutorial-mode .actions button {
+  pointer-events: none !important;
+  opacity: 1 !important;
 }

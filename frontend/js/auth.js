@@ -1,52 +1,117 @@
-// ===== SWITCH LOGIN / REGISTER =====
-document.getElementById("showRegister").addEventListener("click", () => {
-  document.getElementById("loginSection").classList.add("hidden");
-  document.getElementById("registerSection").classList.remove("hidden");
+// === ELEMENTI ===
+const loginSection = document.getElementById("loginSection");
+const registerSection = document.getElementById("registerSection");
+
+const msg = document.getElementById("msg");
+const msgRegister = document.getElementById("msgRegister");
+
+// Campi registrazione
+const newUsername     = document.getElementById("newUsername");
+const newPassword     = document.getElementById("newPassword");
+const confirmPassword = document.getElementById("confirmPassword");
+
+// API corrette Sprint 3
+const API_REGISTER = "http://localhost:8080/api/users/register";
+const API_LOGIN    = "http://localhost:8080/api/users/login";
+
+
+// === SWITCH INTERFACCE ===
+document.getElementById("showRegister").addEventListener("click", (e) => {
+  e.preventDefault();
+  loginSection.classList.add("hidden");
+  registerSection.classList.remove("hidden");
 });
 
-document.getElementById("showLogin").addEventListener("click", () => {
-  document.getElementById("registerSection").classList.add("hidden");
-  document.getElementById("loginSection").classList.remove("hidden");
+document.getElementById("showLogin").addEventListener("click", (e) => {
+  e.preventDefault();
+  registerSection.classList.add("hidden");
+  loginSection.classList.remove("hidden");
 });
 
-// ===== LOGIN =====
+
+// === REGISTRAZIONE ===
+document.getElementById("registerBtn").addEventListener("click", async () => {
+  const username = newUsername.value.trim();
+  const password = newPassword.value.trim();
+  const confirm  = confirmPassword.value.trim();
+
+  if (!username || !password || !confirm) {
+    msgRegister.textContent = "⚠️ Tutti i campi sono obbligatori.";
+    msgRegister.style.color = "#e58500";
+    return;
+  }
+
+  if (password !== confirm) {
+    msgRegister.textContent = "❌ Le password non coincidono.";
+    msgRegister.style.color = "#d64d4d";
+    return;
+  }
+
+  try {
+    const res = await fetch(API_REGISTER, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
+
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      msgRegister.textContent = "✅ Registrazione completata!";
+      msgRegister.style.color = "green";
+
+      setTimeout(() => {
+        registerSection.classList.add("hidden");
+        loginSection.classList.remove("hidden");
+      }, 1200);
+
+    } else {
+      msgRegister.textContent = `❌ ${data.message || "Errore durante la registrazione."}`;
+      msgRegister.style.color = "#d64d4d";
+    }
+
+  } catch {
+    msgRegister.textContent = "❌ Errore di connessione al server.";
+    msgRegister.style.color = "#d64d4d";
+  }
+});
+
+
+// === LOGIN ===
 document.getElementById("loginBtn").addEventListener("click", async () => {
   const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
 
-  const res = await fetch("http://localhost:8080/api/users/login", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-  });
-
-  const text = await res.text();
-
-  if (res.ok) {
-    localStorage.setItem("loggedUser", username);
-    window.location.href = "dashboard.html";
-  } else {
-    document.getElementById("msg").textContent = text;
-  }
-});
-
-// ===== REGISTER =====
-document.getElementById("registerBtn").addEventListener("click", async () => {
-  const username = document.getElementById("newUsername").value.trim();
-  const password = document.getElementById("newPassword").value.trim();
-  const confirm = document.getElementById("confirmPassword").value.trim();
-
-  if (password !== confirm) {
-    document.getElementById("msgRegister").textContent = "Le password non coincidono.";
+  if (!username || !password) {
+    msg.textContent = "⚠️ Inserisci username e password.";
+    msg.style.color = "#e58500";
     return;
   }
 
-  const res = await fetch("http://localhost:8080/api/users/register", {
-    method: "POST",
-    headers: { "Content-Type": "application/x-www-form-urlencoded" },
-    body: `username=${encodeURIComponent(username)}&password=${encodeURIComponent(password)}`
-  });
+  try {
+    const res = await fetch(API_LOGIN, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, password })
+    });
 
-  const text = await res.text();
-  document.getElementById("msgRegister").textContent = text;
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      msg.textContent = "✅ Accesso effettuato!";
+      msg.style.color = "green";
+
+      localStorage.setItem("loggedUser", username);
+
+      setTimeout(() => window.location.href = "dashboard.html", 900);
+
+    } else {
+      msg.textContent = `❌ ${data.message || "Credenziali errate."}`;
+      msg.style.color = "#d64d4d";
+    }
+
+  } catch {
+    msg.textContent = "❌ Errore di connessione al server.";
+    msg.style.color = "#d64d4d";
+  }
 });

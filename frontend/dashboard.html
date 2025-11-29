@@ -1,57 +1,181 @@
 <!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="UTF-8">
-  <title>Dashboard - Nota Bene</title>
-  <link rel="stylesheet" href="css/dashboard.css">
-</head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard - Note App</title>
 
+    <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
 <body>
 
-  <header>
-    <h1>Le mie note</h1>
+    <div id="toastContainer"></div>
 
-    <div class="user-info">
-      <span id="welcomeUser"></span>
-      <button id="logoutBtn">Logout</button>
+    <header>
+        <h1>📑 LE MIE NOTE</h1>
+        <div class="user-info">
+            <p id="welcomeUser"></p>
+            <button id="logoutBtn" class="logout" aria-label="Logout">🚪LOGOUT</button>
+        </div>
+    </header>
+
+    <section id="toolsPanel">
+        <div id="toolsPanelInner">
+
+            <div id="toolsHeaderRow">
+                <span class="tools-title">Tools:</span>
+            </div>
+
+            <div id="toolsContent">
+
+                <div id="searchArea" class="search-wrapper">
+                    <span class="search-icon">🔍</span>
+                    <input type="text" id="searchInput" placeholder="Cerca tra le tue note..." aria-label="Cerca note"/>
+                </div>
+
+                <div id="filterRow" class="filter-row">
+
+                    <div class="filter-item">
+                        <span class="toggle-text">Le mie note</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleMie" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="filter-item">
+                        <span class="toggle-text">Note condivise</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="toggleCondivise" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <a href="cartelle.html" class="cartelle-wrapper">
+                        <button id="btnCartelle" class="cartelle-btn">📁 Cartelle</button>
+                    </a>
+
+                </div>
+            </div>
+
+            <div id="toolsFooterRow">
+                <button id="toolsToggleBtn" class="tools-toggle-btn" data-tooltip="Riduci">−</button>
+            </div>
+
+        </div>
+    </section>
+
+    <main>
+        <div id="noResults">
+            <div class="no-results">🧐 Nessuna nota trovata</div>
+        </div>
+
+        <section id="noteList"></section>
+    </main>
+
+    <div id="welcomeEmpty">
+        <h2>✨ Benvenuto!</h2>
+        <p>Crea la tua prima nota</p>
     </div>
-  </header>
 
-  <main>
+    <img src="img/arrow-down-left2.png" alt="Freccia verso Nuova Nota" class="welcome-arrow" />
 
-    
-    <!--     CREA NUOVA NOTA       -->
-    <h2>Crea una nuova nota</h2>
+    <div id="tutorialSide" class="tutorial-side" style="display:none;">
+        <h2 class="tutorial-side-title">🎉 Complimenti!</h2>
+        <p class="tutorial-side-text">Hai appena creato la tua prima nota! ✨</p>
+        <p class="tutorial-side-text">
+            Da ora puoi usare i <strong>Tools</strong> qui sopra per gestire al meglio le tue note.
+        </p>
 
-    <label for="titolo"><strong>Titolo</strong></label><br>
-    <input id="titolo" placeholder="Titolo della nota"><br><br>
+        <ul class="tutorial-side-list">
+            <li>🔍 Cerca rapidamente tra tutte le note</li>
+            <li>⭐ Filtra “Mie” o “Condivise”</li>
+            <li>📁 Organizza tramite Cartelle</li>
+            <li>➕/➖ Espandi o riduci il pannello strumenti</li>
+        </ul>
 
-    <label for="contenuto"><strong>Contenuto</strong></label><br>
-    <textarea id="contenuto" placeholder="Contenuto della nota"></textarea><br><br>
+        <button id="tutorialSideBtn" class="tutorial-side-btn">Ho capito!</button>
+    </div>
 
-    <label for="cartella"><strong>Cartella (opzionale)</strong></label><br>
-    <input id="cartella" placeholder="Nome della cartella"><br><br>
+    <footer>
+        <button id="addNoteBtn" class="add-btn" aria-label="Crea nuova nota">➕ NUOVA NOTA</button>
+    </footer>
 
-    <button id="createNoteBtn">Crea Nota</button>
+    <!-- Modal Crea/Modifica -->
+    <div id="noteModal" class="modal">
+        <div class="modal-content">
+            <h2 id="modalTitle">📝 CREA UNA NUOVA NOTA</h2>
 
-    <hr>
+            <div id="lockBanner" class="lock-banner"></div>
 
-    
-    <!--       RICERCA NOTE        -->
-    <h2>Cerca tra le tue note</h2>
+            <div class="field-group">
+                <label for="titolo">✏️ Titolo</label>
+                <input type="text" id="titolo" placeholder="Scrivi il titolo della nota" />
+            </div>
 
-    <input id="searchInput" placeholder="Cerca titolo o contenuto...">
-    <button id="searchBtn">🔍 Cerca</button>
+            <div class="field-group">
+                <label for="cartella">📁 Cartella (facoltativa)</label>
+                <input type="text" id="cartella" placeholder="Indica la cartella" />
+            </div>
 
-    <hr>
-    
-   <!-- NOTE -->
-    <h2>Le tue note</h2>
+            <div class="field-group">
+                <label for="contenuto">📝 Contenuto</label>
+                <div class="textarea-wrapper">
+                    <textarea id="contenuto" placeholder="Scrivi il contenuto della nota"></textarea>
+                    <span class="char-counter" id="charCount">0/280</span>
+                </div>
+            </div>
 
-    <ul id="noteList"></ul>
+            <div class="field-group">
+                <label for="permesso">🔒 Tipo di permesso:</label>
+                <select id="permesso">
+                    <option value="PRIVATA" selected>Privata</option>
+                    <option value="LETTURA">Sola lettura</option>
+                    <option value="SCRITTURA">Scrittura</option>
+                </select>
+            </div>
 
-  </main>
+            <div class="share-row" id="shareSection" style="display: none;">
+                <label>🤝 Condividi con:</label>
+                <div id="shareContainer">
+                    <button id="shareNoteBtn" class="share-inline">Seleziona utenti</button>
+                    <div id="utentiSelezionati" class="utenti-lista"></div>
+                </div>
+            </div>
 
-  <script src="js/dashboard.js"></script>
+            <div class="modal-actions">
+                <button id="saveNoteBtn" class="save-btn">💾 SALVA</button>
+                <button id="cancelNoteBtn" class="cancel-btn">❌ ANNULLA</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal utenti per share -->
+    <div id="shareModal" class="modal" aria-hidden="true">
+        <div class="modal-content">
+            <h2>👥 Seleziona utenti</h2>
+            <div id="userListShare" class="user-grid"></div>
+            <div class="modal-actions">
+                <button id="shareSaveBtn" class="save-btn">Conferma</button>
+                <button id="shareCancelBtn" class="cancel-btn">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal versioni -->
+    <div id="versionModal" class="modal">
+        <div class="modal-content">
+            <h2>🕓 Versioni precedenti</h2>
+            <div id="versionListModal"></div>
+            <div class="modal-actions">
+                <button id="closeVersionBtn" class="cancel-btn">Chiudi</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/dashboard.js"></script>
 </body>
 </html>
