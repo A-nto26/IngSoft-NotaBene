@@ -148,9 +148,9 @@ public class NoteRepository {
     // ============================================================
     // VERSIONAMENTO
     // ============================================================
-
     @SuppressWarnings("DuplicatedCode")
     public synchronized void restoreVersion(int id, int index, String username) {
+
         Note n = notes.get(id);
         if (n == null)
             return;
@@ -159,23 +159,24 @@ public class NoteRepository {
         if (versioni == null || index < 0 || index >= versioni.size())
             return;
 
-        // Preleva la versione da ripristinare
+        // 1) Preleva la versione da ripristinare
         VersioneNota restore = versioni.get(index);
 
-        // Salva la versione attuale prima di sovrascrivere
-        n.salvaVersionePrecedente();
+        // 2) Crea la versione che rappresenta lo stato attuale (prima del ripristino)
+        VersioneNota overwritten = new VersioneNota(
+                n.getTitolo(),
+                n.getContenuto(),
+                LocalDateTime.now());
 
-        // Applica titolo e contenuto della versione scelta
+        // 3) Applica il ripristino
         n.setTitolo(restore.getTitolo());
         n.setContenuto(restore.getContenuto());
-
-        // Rimuove la versione ripristinata dalla lista
-        versioni.remove(index);
-        n.setVersioni(versioni);
-
-        // Aggiorna metadati
         n.setLastModifiedAt(LocalDateTime.now());
         n.setLastModifiedBy(username);
+
+        // 4) Sostituisce la versione ripristinata con quella sovrascritta
+        versioni.set(index, overwritten);
+        n.setVersioni(versioni);
 
         notes.put(id, n);
         commit();
