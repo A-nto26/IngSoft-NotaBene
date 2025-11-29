@@ -4,7 +4,6 @@
 
     <modelVersion>4.0.0</modelVersion>
 
-    <!-- Spring Boot parent: gestisce versioni, plugin e BOM -->
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
@@ -12,7 +11,6 @@
         <relativePath />
     </parent>
 
-    <!-- Informazioni di progetto -->
     <groupId>com.sweng.notes</groupId>
     <artifactId>note-backend</artifactId>
     <version>1.0-SNAPSHOT</version>
@@ -20,17 +18,13 @@
     <description>Backend Spring Boot con persistenza MapDB per Nota Bene</description>
     <packaging>jar</packaging>
 
-    <!-- Impostazioni globali -->
     <properties>
         <java.version>17</java.version>
         <maven.compiler.source>17</maven.compiler.source>
         <maven.compiler.target>17</maven.compiler.target>
-
-        <!-- Versione utilizzata per i test JUnit 5 -->
         <junit.jupiter.version>5.10.2</junit.jupiter.version>
     </properties>
 
-    <!-- Dipendenze -->
     <dependencies>
 
         <!-- Web REST -->
@@ -46,6 +40,12 @@
             <version>3.0.9</version>
         </dependency>
 
+        <!-- BCrypt Password Encoder (necessario per UserService) -->
+        <dependency>
+            <groupId>org.springframework.security</groupId>
+            <artifactId>spring-security-crypto</artifactId>
+        </dependency>
+
         <!-- JSON -->
         <dependency>
             <groupId>com.google.code.gson</groupId>
@@ -53,13 +53,12 @@
             <version>2.10.1</version>
         </dependency>
 
-        <!-- Starter test: include JUnit5, Mockito, Spring test -->
+        <!-- Starter test -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-test</artifactId>
             <scope>test</scope>
             <exclusions>
-                <!-- Esclude il motore Vintage (JUnit 4) -->
                 <exclusion>
                     <groupId>org.junit.vintage</groupId>
                     <artifactId>junit-vintage-engine</artifactId>
@@ -69,11 +68,10 @@
 
     </dependencies>
 
-    <!-- Plugin di compilazione e test -->
     <build>
         <plugins>
 
-            <!-- Plugin per compilare con Java 17 -->
+            <!-- Compilatore Java 17 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
@@ -84,7 +82,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Plugin Surefire: necessario per eseguire i test JUnit5 -->
+            <!-- Surefire per JUnit 5 -->
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-surefire-plugin</artifactId>
@@ -94,7 +92,7 @@
                 </configuration>
             </plugin>
 
-            <!-- Plugin Spring Boot per l'esecuzione dell'applicazione -->
+            <!-- Plugin Spring Boot -->
             <plugin>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-maven-plugin</artifactId>

@@ -1,7 +1,9 @@
 package com.sweng.notes.controller;
 
+import com.sweng.notes.dto.*;
 import com.sweng.notes.model.Note;
 import com.sweng.notes.service.NoteService;
+
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -18,82 +20,126 @@ public class NoteController {
         this.noteService = noteService;
     }
 
-    // ============================
-    // CREATE
-    // ============================
+    // ============================================================
+    // CREATE — UC4 (Sprint 3)
+    // ============================================================
     @PostMapping
-    public ResponseEntity<Note> create(
-            @RequestParam String titolo,
-            @RequestParam String contenuto,
-            @RequestParam String creatore,
-            @RequestParam(required = false) String cartella) {
-
-        Note n = noteService.create(titolo, contenuto, creatore, cartella);
-        return ResponseEntity.ok(n);
+    public ResponseEntity<Note> create(@RequestBody CreateNoteRequest req) {
+        return ResponseEntity.ok(noteService.create(req));
     }
 
-    // ============================
-    // GET NOTES BY USER
-    // ============================
-    @GetMapping("/{username}")
-    public ResponseEntity<List<Note>> getByUser(@PathVariable String username) {
-        return ResponseEntity.ok(noteService.getByUser(username));
+    // ============================================================
+    // VISUALIZZA NOTE VISIBILI — UC3
+    // ============================================================
+    @GetMapping("/visibili/{username}")
+    public ResponseEntity<List<Note>> getVisibleNotes(@PathVariable String username) {
+        String userNorm = username.trim().toLowerCase();
+        return ResponseEntity.ok(noteService.getVisibleNotes(userNorm));
     }
 
-    // ============================
-    // UPDATE (titolo + contenuto)
-    // ============================
+    // ============================================================
+    // UPDATE — UC10 (versionamento + controllo autore)
+    // ============================================================
     @PutMapping("/{id}")
     public ResponseEntity<Void> update(
             @PathVariable int id,
-            @RequestParam(required = false) String titolo,
-            @RequestParam(required = false) String contenuto) {
+            @RequestParam String user,
+            @RequestBody NoteUpdateRequest req) {
 
-        noteService.update(id, titolo, contenuto);
+        String userNorm = user.trim().toLowerCase();
+        noteService.update(id, req, userNorm);
         return ResponseEntity.ok().build();
     }
 
-    // ============================
-    // DUPLICATE
-    // ============================
+    // ============================================================
+    // DUPLICATE — UC6
+    // ============================================================
     @PostMapping("/{id}/duplicate")
     public ResponseEntity<Note> duplicate(
             @PathVariable int id,
-            @RequestParam String creatore) {
+            @RequestParam String user) {
 
-        Note duplicata = noteService.duplicate(id, creatore);
-        return ResponseEntity.ok(duplicata);
+        String userNorm = user.trim().toLowerCase();
+        return ResponseEntity.ok(noteService.duplicate(id, userNorm));
     }
 
-    // ============================
-    // DELETE
-    // ============================
+    // ============================================================
+    // DELETE — UC12
+    // ============================================================
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable int id) {
-        noteService.delete(id);
+    public ResponseEntity<Void> delete(
+            @PathVariable int id,
+            @RequestParam String user) {
+
+        String userNorm = user.trim().toLowerCase();
+        noteService.delete(id, userNorm);
         return ResponseEntity.ok().build();
     }
 
-    // ============================
-    // SEARCH
-    // ============================
+    // ============================================================
+    // SEARCH — UC8
+    // ============================================================
     @GetMapping("/search")
     public ResponseEntity<List<Note>> search(
             @RequestParam String user,
             @RequestParam(required = false) String q) {
 
-        return ResponseEntity.ok(noteService.search(user, q));
+        String userNorm = user.trim().toLowerCase();
+        return ResponseEntity.ok(noteService.search(userNorm, q));
     }
 
-    // ============================
-    // ASSIGN FOLDER
-    // ============================
+    // ============================================================
+    // ASSEGNA CARTELLA — UC9
+    // ============================================================
     @PutMapping("/{id}/folder")
     public ResponseEntity<Void> setFolder(
             @PathVariable int id,
-            @RequestParam String cartella) {
+            @RequestParam String user,
+            @RequestBody FolderRequest req) {
 
-        noteService.setCartella(id, cartella);
+        String userNorm = user.trim().toLowerCase();
+        noteService.setCartella(id, req.getNome(), userNorm);
+        return ResponseEntity.ok().build();
+    }
+
+    // ============================================================
+    // SHARE — UC11
+    // ============================================================
+    @PostMapping("/{id}/share")
+    public ResponseEntity<Void> share(
+            @PathVariable int id,
+            @RequestParam String user,
+            @RequestBody ShareNoteRequest req) {
+
+        String userNorm = user.trim().toLowerCase();
+        noteService.shareNote(id, req, userNorm);
+        return ResponseEntity.ok().build();
+    }
+
+    // ============================================================
+    // RIMOZIONE DI SE STESSI — UC7
+    // ============================================================
+    @PostMapping("/{id}/removeSelf")
+    public ResponseEntity<Void> removeSelf(
+            @PathVariable int id,
+            @RequestBody UserRequest req) {
+
+        String userNorm = req.getUsername().trim().toLowerCase();
+        noteService.removeSelf(id, userNorm);
+        return ResponseEntity.ok().build();
+    }
+
+    // ============================================================
+    // RESTORE VERSIONE — UC5
+    // ============================================================
+    @PostMapping("/{id}/restore/{index}")
+    public ResponseEntity<Void> restoreVersion(
+            @PathVariable int id,
+            @PathVariable int index,
+            @RequestParam String user) {
+
+        String userNorm = user.trim().toLowerCase();
+        noteService.restoreVersion(id, index, userNorm);
         return ResponseEntity.ok().build();
     }
 }

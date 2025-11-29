@@ -1,111 +1,268 @@
 package com.sweng.notes.service;
 
-import com.sweng.notes.model.Note;
+import com.sweng.notes.dto.*;
+import com.sweng.notes.model.*;
 import com.sweng.notes.repository.NoteRepository;
+
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 
 import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
+import java.util.*;
 
 @Service
 public class NoteService {
 
-    private final NoteRepository noteRepo;
+    private final NoteRepository repo;
 
-    public NoteService(NoteRepository noteRepo) {
-        this.noteRepo = noteRepo;
+    public NoteService(NoteRepository repo) {
+        this.repo = repo;
     }
 
-    // ============================
-    // CREATE
-    // ============================
-    public Note create(String titolo, String contenuto, String creatore, String cartella) {
-        Note n = new Note(0, titolo, contenuto, creatore, cartella);
-        noteRepo.save(n);
+    // ============================================================
+    // CREATE — UC4
+    // ============================================================
+    public Note create(CreateNoteRequest req) {
+
+        Note n = new Note(
+                0,
+                req.getTitolo(),
+                req.getContenuto(),
+                req.getCreatore().trim().toLowerCase(),
+                req.getCartella());
+
+        Permesso p;
+        if ("LETTURA".equalsIgnoreCase(req.getPermesso())) {
+            p = new Lettura();
+        } else if ("SCRITTURA".equalsIgnoreCase(req.getPermesso())) {
+            p = new Scrittura();
+        } else {
+            p = new Privata();
+        }
+        n.setPermesso(p);
+
+        if (p instanceof Privata) {
+            n.setUtentiCondivisi(new LinkedHashSet<>());
+        } else if (req.getUtentiCondivisi() != null) {
+            n.setUtentiCondivisi(new LinkedHashSet<>(req.getUtentiCondivisi()));
+        } else {
+            n.setUtentiCondivisi(new LinkedHashSet<>());
+        }
+
+        n.setVersioni(new ArrayList<>());
+        repo.save(n);
         return n;
     }
 
-    // ============================
-    // UPDATE (solo titolo e contenuto)
-    // ============================
-    public void update(int id, String nuovoTitolo, String nuovoContenuto) {
-        Note note = noteRepo.findById(id);
-        if (note == null)
-            return;
+    // ============================================================
+    // GET VISIBLE — UC3
+    // ============================================================
+    public List<Note> getVisibleNotes(String username) {
+        username = username.trim().toLowerCase();
 
-        if (nuovoTitolo != null && !nuovoTitolo.isBlank()) {
-            note.setTitolo(nuovoTitolo);
-        }
-        if (nuovoContenuto != null && !nuovoContenuto.isBlank()) {
-            note.setContenuto(nuovoContenuto);
-        }
+        List<Note> mie = repo.findByCreator(username);
+        List<Note> condivise = repo.findSharedWithUser(username);
 
-        note.setLastModifiedAt(LocalDateTime.now());
-        noteRepo.save(note);
+        List<Note> tot = new ArrayList<>();
+        tot.addAll(mie);
+        tot.addAll(condivise);
+        return tot;
     }
 
-    // ============================
-    // DELETE
-    // ============================
-    public void delete(int id) {
-        noteRepo.delete(id);
+    // ============================================================
+    // UPDATE — UC10
+    // ============================================================
+    public Note update(int id, NoteUpdateRequest req, String username) {
+
+        username = username.trim().toLowerCase();
+
+        Note n = repo.findById(id);
+        if (n == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!Objects.equals(n.getCreatore(), username))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
+
+        if (n.getLockedBy() != null
+                && !n.getLockedBy().equalsIgnoreCase(username)
+                && !isLockExpired(n)) {
+            throw new ResponseStatusException(
+                    HttpStatus.CONFLICT,
+                    "Nota attualmente modificata da " + n.getLockedBy());
+        }
+
+        n.salvaVersionePrecedente();
+
+        if (req.getTitolo() != null && !req.getTitolo().isBlank())
+            n.setTitolo(req.getTitolo());
+
+        if (req.getContenuto() != null && !req.getContenuto().isBlank())
+            n.setContenuto(req.getContenuto());
+
+        if (req.getCartella() != null)
+            n.setCartella(req.getCartella());
+
+        n.setLastModifiedAt(LocalDateTime.now());
+        n.setLastModifiedBy(username);
+
+        repo.save(n);
+        return n;
     }
 
-    // ============================
-    // DUPLICATE
-    // ============================
-    public Note duplicate(int id, String creatore) {
-        Note original = noteRepo.findById(id);
-        if (original == null)
-            return null;
+    private boolean isLockExpired(Note n) {
+        if (n.getLockedAt() == null)
+            return true;
+        return n.getLockedAt().plusMinutes(10).isBefore(LocalDateTime.now());
+    }
 
-        Note copy = new Note(
+    // ============================================================
+    // DELETE — UC12
+    // ============================================================
+    public void delete(int id, String username) {
+
+        username = username.trim().toLowerCase();
+
+        Note n = repo.findById(id);
+        if (n == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!Objects.equals(n.getCreatore(), username))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
+
+        repo.delete(id);
+    }
+
+    // ============================================================
+    // DUPLICATE — UC6
+    // ============================================================
+    public Note duplicate(int id, String username) {
+
+        username = username.trim().toLowerCase();
+
+        Note orig = repo.findById(id);
+        if (orig == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!orig.puoLeggere(username))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
+
+        Note copia = new Note(
                 0,
-                original.getTitolo() + " (Copia)",
-                original.getContenuto(),
-                creatore,
-                original.getCartella());
+                orig.getTitolo() + " (Copia)",
+                orig.getContenuto(),
+                username,
+                orig.getCartella());
 
-        noteRepo.save(copy);
-        return copy;
+        copia.setPermesso(new Privata());
+        copia.setVersioni(new ArrayList<>());
+        copia.setUtentiCondivisi(new LinkedHashSet<>());
+
+        repo.save(copia);
+        return copia;
     }
 
-    // ============================
-    // SEARCH
-    // ============================
+    // ============================================================
+    // REMOVE SELF — UC7
+    // ============================================================
+    public void removeSelf(int id, String username) {
+
+        username = username.trim().toLowerCase();
+
+        Note n = repo.findById(id);
+        if (n == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!n.getUtentiCondivisi().contains(username))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non condivisa con te");
+
+        repo.removeSelf(id, username);
+    }
+
+    // ============================================================
+    // SEARCH — UC8
+    // ============================================================
     public List<Note> search(String username, String query) {
-        List<Note> userNotes = noteRepo.findByCreatore(username);
+
+        username = username.trim().toLowerCase();
+
+        List<Note> visibili = getVisibleNotes(username);
+
         if (query == null || query.isBlank())
-            return userNotes;
+            return visibili;
 
         String q = query.toLowerCase();
-        return userNotes.stream()
-                .filter(n -> n.getTitolo().toLowerCase().contains(q) ||
-                        n.getContenuto().toLowerCase().contains(q))
-                .collect(Collectors.toList());
+        List<Note> result = new ArrayList<>();
+
+        for (Note n : visibili) {
+            if (n.getTitolo().toLowerCase().contains(q)
+                    || n.getContenuto().toLowerCase().contains(q)) {
+                result.add(n);
+            }
+        }
+
+        return result;
     }
 
-    // ============================
-    // CARTELLA
-    // ============================
-    public void setCartella(int id, String cartella) {
-        Note note = noteRepo.findById(id);
-        if (note == null)
+    // ============================================================
+    // SET CARTELLA — UC9
+    // ============================================================
+    public void setCartella(int id, String nuovoNome, String username) {
+
+        username = username.trim().toLowerCase();
+
+        Note n = repo.findById(id);
+        if (n == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!Objects.equals(n.getCreatore(), username))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
+
+        n.salvaVersionePrecedente();
+        n.setCartella(nuovoNome);
+        n.setLastModifiedAt(LocalDateTime.now());
+        n.setLastModifiedBy(username);
+
+        repo.save(n);
+    }
+
+    // ============================================================
+    // SHARE — UC11
+    // ============================================================
+    public void shareNote(int id, ShareNoteRequest req, String autore) {
+
+        autore = autore.trim().toLowerCase();
+
+        Note n = repo.findById(id);
+        if (n == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!Objects.equals(n.getCreatore(), autore))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
+
+        if (req.getUtentiCondivisi() == null || req.getUtentiCondivisi().isEmpty())
             return;
 
-        note.setCartella(cartella);
-        noteRepo.save(note);
+        repo.addUsersToShare(id,
+                new LinkedHashSet<>(req.getUtentiCondivisi()));
     }
 
-    // ============================
-    // LISTA NOTE
-    // ============================
-    public List<Note> getByUser(String username) {
-        return noteRepo.findByCreatore(username);
+    // ============================================================
+    // RESTORE VERSION — UC5
+    // ============================================================
+    public void restoreVersion(int id, int index, String username) {
+
+        username = username.trim().toLowerCase();
+
+        Note n = repo.findById(id);
+        if (n == null)
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
+
+        if (!Objects.equals(n.getCreatore(), username)
+                && !n.puoScrivere(username))
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
+
+        repo.restoreVersion(id, index, username);
     }
 
-    public Note getById(int id) {
-        return noteRepo.findById(id);
-    }
 }

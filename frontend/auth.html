@@ -2,43 +2,62 @@
 <html lang="it">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Accesso - Nota Bene</title>
   <link rel="stylesheet" href="css/auth.css" />
 </head>
 <body>
 
-  <div class="auth-container">
+  <div class="auth-wrapper">
 
-    <!-- LOGIN -->
-    <div id="loginSection">
-      <h2>Accedi</h2>
-
-      <input type="text" id="username" placeholder="Username">
-      <input type="password" id="password" placeholder="Password">
-      <button id="loginBtn">Accedi</button>
-
-      <p>Non hai un account?
-        <a href="#" id="showRegister">Registrati</a>
-      </p>
-
-      <p id="msg"></p>
+    <!-- COLONNA SINISTRA (Logo) -->
+    <div class="auth-side">
+      <div class="logo-container">
+        <img src="img/logo-notabene.png" alt="Logo Nota Bene" class="logo" />
+        <h2>Le tue idee. Ben organizzate.</h2>
+      </div>
     </div>
 
-    <!-- REGISTER -->
-    <div id="registerSection" class="hidden">
-      <h2>Registrati</h2>
+    <!-- COLONNA DESTRA (Form login/register) -->
+    <div class="auth-form">
 
-      <input type="text" id="newUsername" placeholder="Username">
-      <input type="password" id="newPassword" placeholder="Password">
-      <input type="password" id="confirmPassword" placeholder="Conferma password">
+      <!-- LOGIN -->
+      <div id="loginSection">
+        <h1>BENVENUTO!</h1>
+        <p class="subtitle">Accedi per continuare.</p>
 
-      <button id="registerBtn">Crea account</button>
+        <input type="text" id="username" placeholder="Username" autocomplete="off" />
+        <input type="password" id="password" placeholder="Password" autocomplete="off" />
 
-      <p>Hai già un account?
-        <a href="#" id="showLogin">Accedi</a>
-      </p>
+        <button id="loginBtn" class="primary-btn">Accedi</button>
 
-      <p id="msgRegister"></p>
+        <p class="switch-text">
+          Non hai un account?
+          <a href="#" id="showRegister">Registrati</a>
+        </p>
+
+        <p id="msg"></p>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="registerSection" class="hidden">
+        <h1>Crea un account</h1>
+        <p class="subtitle">Registrati per iniziare.</p>
+
+        <input type="text" id="newUsername" placeholder="Username" autocomplete="off" />
+        <input type="password" id="newPassword" placeholder="Password" autocomplete="off" />
+        <input type="password" id="confirmPassword" placeholder="Conferma password" autocomplete="off" />
+
+        <button id="registerBtn" class="primary-btn">Registrati</button>
+
+        <p class="switch-text">
+          Hai già un account?
+          <a href="#" id="showLogin">Accedi</a>
+        </p>
+
+        <p id="msgRegister"></p>
+      </div>
+
     </div>
 
   </div>

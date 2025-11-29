@@ -1,67 +1,91 @@
 package com.sweng.notes.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.sweng.notes.dto.UserRequest;
 import com.sweng.notes.service.UserService;
-import org.junit.jupiter.api.BeforeEach;
+
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.web.servlet.MockMvc;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
+@WebMvcTest(UserController.class)
 public class UserControllerTest {
 
-    private UserService userService;
-    private UserController controller;
+    @Autowired
+    private MockMvc mockMvc;
 
-    @BeforeEach
-    void setup() {
-        userService = Mockito.mock(UserService.class);
-        controller = new UserController(userService);
-    }
+    @MockBean
+    private UserService userService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Test
-    void testRegisterSuccess() {
+    void testRegisterSuccess() throws Exception {
+
+        UserRequest req = new UserRequest("mario", "1234");
+
         when(userService.register("mario", "1234")).thenReturn(true);
 
-        ResponseEntity<String> response =
-                controller.register("mario", "1234");
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Registrazione completata", response.getBody());
+        mockMvc.perform(
+                post("/api/users/register")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(req))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void testRegisterFail() {
+    void testRegisterFail() throws Exception {
+
+        UserRequest req = new UserRequest("mario", "1234");
+
         when(userService.register("mario", "1234")).thenReturn(false);
 
-        ResponseEntity<String> response =
-                controller.register("mario", "1234");
-
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Registrazione fallita", response.getBody());
+        mockMvc.perform(
+                post("/api/users/register")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(req))
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false));
     }
 
     @Test
-    void testLoginSuccess() {
+    void testLoginSuccess() throws Exception {
+
+        UserRequest req = new UserRequest("anna", "pass");
+
         when(userService.login("anna", "pass")).thenReturn(true);
 
-        ResponseEntity<String> response =
-                controller.login("anna", "pass");
-
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertEquals("Login corretto", response.getBody());
+        mockMvc.perform(
+                post("/api/users/login")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(req))
+            )
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.success").value(true));
     }
 
     @Test
-    void testLoginFail() {
-        when(userService.login("anna", "pass")).thenReturn(false);
+    void testLoginFail() throws Exception {
 
-        ResponseEntity<String> response =
-                controller.login("anna", "pass");
+        UserRequest req = new UserRequest("anna", "xxx");
 
-        assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-        assertEquals("Credenziali invalide", response.getBody());
+        when(userService.login("anna", "xxx")).thenReturn(false);
+
+        mockMvc.perform(
+                post("/api/users/login")
+                .contentType("application/json")
+                .content(objectMapper.writeValueAsString(req))
+            )
+            .andExpect(status().isBadRequest())
+            .andExpect(jsonPath("$.success").value(false));
     }
 }
