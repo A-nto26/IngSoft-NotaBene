@@ -1,6 +1,5 @@
 package com.sweng.notes.dto;
 
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -16,10 +15,11 @@ public class CreateNoteRequest {
 
     private String titolo;
     private String contenuto;
-    private String creatore; // obbligatorio
-    private String cartella; // opzionale
-    private String permesso; // PRIVATA | LETTURA | SCRITTURA
-    private List<String> utentiCondivisi; // opzionale
+    private String creatore; 
+    private String cartella; 
+    private String permesso; 
+    private List<String> utentiCondivisi; 
+    private String coloreCartella; 
 
     // ===== GETTER & SETTER =====
 
@@ -44,8 +44,7 @@ public class CreateNoteRequest {
     }
 
     public void setCreatore(String creatore) {
-        // normalizziamo per sicurezza
-        this.creatore = creatore != null ? creatore.trim().toLowerCase() : null;
+        this.creatore = creatore;
     }
 
     public String getCartella() {
@@ -61,8 +60,7 @@ public class CreateNoteRequest {
     }
 
     public void setPermesso(String permesso) {
-        // normalizziamo tutto maiuscolo
-        this.permesso = (permesso != null) ? permesso.trim().toUpperCase() : null;
+        this.permesso = permesso;
     }
 
     public List<String> getUtentiCondivisi() {
@@ -70,17 +68,14 @@ public class CreateNoteRequest {
     }
 
     public void setUtentiCondivisi(List<String> utentiCondivisi) {
-        if (utentiCondivisi == null) {
-            this.utentiCondivisi = null;
-            return;
-        }
+        this.utentiCondivisi = utentiCondivisi;
+    }
 
-        List<String> norm = new ArrayList<>();
-        for (String u : utentiCondivisi) {
-            if (u != null && !u.isBlank()) {
-                norm.add(u.trim().toLowerCase());
-            }
-        }
-        this.utentiCondivisi = norm;
+    public String getColoreCartella() {
+        return coloreCartella;
+    }
+
+    public void setColoreCartella(String coloreCartella) {
+        this.coloreCartella = coloreCartella;
     }
 }

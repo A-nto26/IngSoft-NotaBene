@@ -17,6 +17,12 @@
 /* ============================================================
    2. STRUTTURA BASE / BODY
    ============================================================ */
+html, body {
+    overflow-x: hidden !important;
+    width: 100%;
+    max-width: 100%;
+}
+
 body {
   font-family: "Poppins", sans-serif;
   background-color: #fdfdfc;
@@ -70,47 +76,108 @@ body {
   font-weight: 500;
   font-size: 0.95rem;
   color: #555;
+  display: none;
 }
 
 /* ============================================================
-   TOAST - NOTIFICHE IN ALTO A DESTRA
+   TOAST - DESIGN STILE NOTE (sfondo bianco + bordo colorato)
    ============================================================ */
+
 #toastContainer {
-  position: fixed;
-  top: 20px;
-  right: 20px;
-  z-index: 9999;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 999999 !important;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
+/* Base toast */
 .toast {
-  min-width: 260px;
-  max-width: 340px;
-  padding: 12px 16px;
-  border-radius: 8px;
-  color: #fff;
-  font-size: 0.9rem;
-  font-weight: 500;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.25);
-  opacity: 0;
-  transform: translateX(40px);
-  animation: toastIn 0.4s forwards, toastOut 0.4s ease-in-out 10s forwards;
+    padding: 14px 18px;
+    background: #ffffff;
+    border-radius: 12px;
+    min-width: 260px;
+    max-width: 360px;
+    color: #333;
+    font-size: 0.95rem;
+    font-weight: 500;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.15);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+
+    opacity: 0;
+    animation: toastFadeIn 0.4s forwards;
 }
 
-.toast-success { background: #2ecc71; }
-.toast-error   { background: #e74c3c; }
-.toast-info    { background: #3498db; }
-
-@keyframes toastIn {
-  from { opacity: 0; transform: translateX(40px); }
-  to   { opacity: 1; transform: translateX(0); }
+/* Icona */
+.toast::before {
+    font-size: 1.3rem;
 }
 
-@keyframes toastOut {
-  from { opacity: 1; transform: translateX(0); }
-  to   { opacity: 0; transform: translateX(40px); }
+/* 🟢 SUCCESSO */
+.toast-success {
+    border: 3px solid #2ecc71;
+}
+.toast-success::before {
+    content: "✔️";
+}
+
+/* 🔴 ERRORE */
+.toast-error {
+    border: 3px solid #e74c3c;
+}
+.toast-error::before {
+    content: "❌";
+}
+
+/* 🟡 INFO / AVVISO */
+.toast-info {
+    border: 3px solid #f1c40f;
+}
+.toast-info::before {
+    content: "⚠️";
+}
+
+/* 🔵 TOAST DI CONFERMA */
+.toast-confirm {
+    border: 3px solid #3498db !important;
+}
+.toast-confirm::before {
+    content: "❓";
+}
+
+/* Bottoni nel toast di conferma */
+.toast button {
+    padding: 6px 12px;
+    border-radius: 6px;
+    border: none;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.toast button:first-of-type {
+    background: #28b463;
+    color: white;
+}
+
+.toast button:last-of-type {
+    background: #e74c3c;
+    color: white;
+}
+
+/* Fade-in */
+@keyframes toastFadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 /* ============================================================
@@ -123,7 +190,7 @@ header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem 2rem;
+  padding: 0.7rem 2rem;
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.25);
 }
 
@@ -149,6 +216,7 @@ header h1 {
   font-weight: 500;
   transition: all 0.25s ease;
 }
+
 .logout:hover {
   background: var(--orange);
   color: white;
@@ -160,27 +228,31 @@ header h1 {
    ============================================================ */
 #toolsPanel {
   width: 100%;
-  padding: 1.2rem 0;
+  padding: 0.6rem 1rem;
+  box-sizing: border-box;
   margin: 0;
   background: rgba(255, 255, 255, 0.92);
   border-bottom: 2px solid #ddd;
   box-shadow: 0 3px 8px rgba(0,0,0,0.15);
   z-index: 4;
   position: relative;
+  align-items: center;
 }
 
 #toolsPanelInner {
   max-width: 1150px;
   width: 100%;
   margin: 0 auto;
-  padding: 0 1.2rem;
+  display: flex;              
+  flex-direction: column;    
+  align-items: center;
 }
 
 /* === Riga 1 → Search + titolo === */
 #toolsHeaderRow {
   display: flex;
   align-items: center;
-  margin-bottom: 1rem;
+  margin-bottom: 0.5rem;
 }
 
 .tools-title {
@@ -188,6 +260,13 @@ header h1 {
   font-weight: 600;
   margin-right: 1rem;
   color: #2c3e50;
+}
+
+#toolsContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
 }
 
 /* Search */
@@ -199,13 +278,15 @@ header h1 {
   border: 2px solid var(--orange);
   border-radius: 10px;
   padding: 0.55rem 0.9rem;
-  width: 480px;
+  max-width: 480px;
+  width: 100%;
   box-shadow: 0 3px 6px rgba(0,0,0,0.15);
 }
 
 /* === Riga 2 → Toggle + Cartelle === */
 .filter-row {
   display: flex;
+  justify-content: center;  
   align-items: center;
   gap: 2rem;
   flex-wrap: wrap;
@@ -296,10 +377,8 @@ header h1 {
 #toolsFooterRow {
   display: flex;
   justify-content: flex-end;
-  padding-top: 0.3rem;
-  padding-bottom: 0.3rem;
   position: relative;
-  height: 0;
+  width: 100%;
 }
 
 .tools-toggle-btn {
@@ -309,7 +388,7 @@ header h1 {
   z-index: 5 !important;
   width: auto;
   height: auto;
-  padding: 0.35rem 0.9rem;
+  padding: 0.1rem 0.5rem;
   background: #ffffff;
   border: 2px solid #d0d0d0;
   border-radius: 8px;
@@ -409,7 +488,7 @@ main {
   flex: 1;
   display: flex;
   justify-content: center;
-  padding: 2rem;
+  padding: 0.5rem 1.5rem;
   box-sizing: border-box;
 }
 
@@ -421,6 +500,7 @@ main {
   max-width: 1200px;
   margin: 0 auto;
   justify-content: center;
+  margin-top: 0.5rem !important; /* avvicina le note */
 }
 
 /* ============================================================
@@ -461,7 +541,8 @@ main {
   font-size: 0.95rem;
   color: var(--text);
   opacity: 0.9;
-  margin-bottom: 1rem;
+  margin-bottom: 0.25rem;
+  line-height: 1.15; 
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;
@@ -507,6 +588,32 @@ main {
 }
 .note-card.shared-write .version-badge { background: var(--green); }
 
+/* Nota privata -> rosso */
+.note-card.private-note {
+  border-color: var(--red);
+  box-shadow: 0 4px 10px rgba(255, 99, 99, 0.25);
+}
+
+.note-card.private-note .version-badge {
+  background: var(--red);
+}
+
+/* Contenitore del contenuto della nota */
+.card-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+}
+
+/* Contenitore dei bottoni Modifica – Versioni – Elimina */
+.card-footer {
+    display: flex;
+    gap: 10px;
+    margin-top: auto; /* spinge i bottoni in basso */
+    padding-top: 10px;
+}
+
 /* ---- Version Badge ---- */
 .version-badge {
   position: absolute;
@@ -547,6 +654,13 @@ main {
   to   { opacity: 1; }
 }
 
+/* Fix peso del testo dentro le note */
+.note-card p,
+.note-card small,
+.note-card h2 {
+  font-weight: 400 !important;
+}
+
 /* ============================================================
    8. AZIONI (edit, elimina, versioni)
    ============================================================ */
@@ -579,6 +693,154 @@ main {
   filter: brightness(1.1);
 }
 
+/* 1. Contenitore della sezione Condivisa con */
+.share-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.8rem;
+}
+
+#shareSection {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#shareSection > * {
+  flex-shrink: 0;
+}
+
+#shareSection label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2;
+}
+
+#shareSection label,
+#shareSection p {
+    display: flex;
+    align-items: center;
+    margin: 0;
+    padding: 0;
+    line-height: 1.2; /* evita che il testo sia più alto */
+}
+
+.share-users-btn {
+    align-self: center;
+}
+
+/* 2. Contenitore delle pillole */
+.utenti-inline {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 6px;
+  min-height: 24px;
+}
+
+/* 3. Stile pillole inline */
+.user-pill-inline {
+  display: inline-flex;
+  align-items: center;
+
+  background: #f1efff;
+  color: #4a47c6;
+  border: 1px solid #c4c2f1;
+
+  padding: 3px 10px;
+  border-radius: 12px;
+
+  font-size: 0.78rem;
+  font-weight: 500;
+
+  white-space: nowrap;
+}
+
+/* 4. Bottone "Utenti" — versione unificata */
+#shareNoteBtn,
+.share-inline,
+.share-users-btn {
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 0.45rem 0.8rem !important;
+  font-size: 0.85rem !important;
+
+  background: #7066F0 !important;
+  border: 2px solid #574de0 !important;
+  border-radius: 8px !important;
+
+  color: white !important;
+  cursor: pointer;
+
+  transition: 0.25s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+
+  white-space: nowrap;
+}
+
+/* Hover uniforme */
+#shareNoteBtn:hover,
+.share-inline:hover,
+.share-users-btn:hover {
+  background: #5c53d8 !important;
+  border-color: #5c53d8 !important;
+  transform: translateY(-2px);
+}
+
+.lock-indicator {
+    font-size: 0.85rem !important;
+    margin-top: 20px;
+    margin-bottom: 4px;
+}
+
+.lock-indicator.green {
+    color: #27ae60;
+}
+
+/* --- Messaggio "Non ci sono note" --- */
+.no-notes-message {
+    background: white;
+    padding: 28px 32px;
+    border-radius: 16px;
+    border: 3px solid #f4a261;
+    color: #333;
+    font-size: 1.2rem;
+    font-weight: 600;
+
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    justify-content: center;
+
+    width: 45%;             
+    max-width: 480px;       
+    height: 110px;          
+
+    margin: 40px auto;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.10);
+
+    animation: floatUpDown 3.5s ease-in-out infinite;  
+}
+
+.no-notes-message .icon {
+    font-size: 1.5rem;
+}
+
+/* Animazione "fluttuante" */
+@keyframes floatUpDown {
+    0%   { transform: translateY(0); }
+    50%  { transform: translateY(-6px); } 
+    100% { transform: translateY(0); }
+}
+
+
 /* ============================================================
    9. MODALI (Crea/Modifica, Share, Versioni)
    ============================================================ */
@@ -595,19 +857,27 @@ main {
   align-items: center;
   background: rgba(0, 0, 0, 0.45);
   backdrop-filter: blur(3px);
-  z-index: 200;
+  z-index: 90000;
 }
 
 /* ---- Contenitore interno ---- */
 .modal-content {
+  position: relative;
   background: var(--panel);
-  border: 4px solid var(--orange);
-  border-radius: 12px;
-  padding: 2rem;
-  width: 480px;
-  max-width: 95%;
-  max-height: 85vh;
+  border: 5px solid var(--orange);
+  border-radius: 15px;
+  padding: 20px;
+  padding-right: 20px;
+
+  width: 510px;
+  max-width: 80%;
+  max-height: 90vh;
+
   overflow-y: auto;
+  overflow: auto;
+  box-sizing: border-box; 
+  font-size: 0.95rem;
+
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -616,7 +886,36 @@ main {
   margin-top: 0.8rem;
   margin-bottom: 0.3rem;
   font-weight: 500;
-  font-size: 0.95rem;
+  
+  scrollbar-gutter: stable both-edges;
+}
+
+/* Customizza scrollbar con angoli arrotondati */
+.modal-content::-webkit-scrollbar {
+  width: 12px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+  border-radius: 15px;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #999;
+  border-radius: 10px;
+  border: 2px solid var(--panel);
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #e8e8e8;
+}
+
+/* Fix overflow contenuto modale */
+.modal-content *,
+#versionListModal *,
+#shareModal .modal-content * {
+  min-width: 0 !important;
+  box-sizing: border-box;
 }
 
 .modal-content h2 {
@@ -710,6 +1009,24 @@ main {
   transform: translateY(-2px);
 }
 
+/* Stile per disabilitare visivamente i pulsanti in modalità anteprima */
+.disabled-preview {
+    /* 1. Cambia lo sfondo in un colore grigio chiaro e sicuro */
+    background: #ccc !important;
+    border-color: #aaa !important;
+    color: #666 !important;
+    
+    /* 2. Rimuove l'ombra e l'effetto hover/click */
+    box-shadow: none !important;
+    transform: none !important;
+    
+    /* 3. Blocca gli eventi del mouse */
+    cursor: not-allowed !important;
+    
+    /* 4. Opacità per un effetto "spento" */
+    opacity: 0.7;
+}
+
 /* ============================================
    SHARE MODAL – Stile pillole selezionabili
    ============================================ */
@@ -761,6 +1078,61 @@ main {
 /* Hover */
 .user-pill:hover {
   border-color: #7066F0;
+}
+
+/* ---- Bottone unificato "Utenti" ---- */
+.share-users-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+
+  padding: 0.45rem 0.8rem;
+  font-size: 0.85rem;
+
+  background: #7066F0;
+  border: 2px solid #574de0;
+  border-radius: 8px;
+
+  color: white;
+  cursor: pointer;
+
+  transition: 0.25s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+
+  white-space: nowrap;
+}
+
+.share-users-btn:hover {
+  background: #5c53d8;
+  border-color: #5c53d8;
+  transform: translateY(-2px);
+}
+
+/* Contenitore delle pillole */
+.shared-users-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-left: 3px;
+  min-height: 22px;
+  align-items: center;
+}
+
+/* Singola pillola */
+.user-pill-inline {
+  display: inline-flex;
+  align-items: center;
+
+  background: #f1efff;
+  color: #4a47c6;
+  border: 1px solid #c4c2f1;
+
+  padding: 2px 8px;
+  font-size: 0.8rem;
+
+  border-radius: 12px;
+  white-space: nowrap;
 }
 
 /* ============================================
@@ -853,6 +1225,7 @@ main {
   visibility: hidden;
   opacity: 0;
   z-index: 10;
+  width: fit-content;
 }
 
 #welcomeEmpty.show {
@@ -860,22 +1233,32 @@ main {
   opacity: 1;
 }
 
-#welcomeEmpty h2 {
-  font-size: 1.6rem;
-  color: var(--orange);
-  margin-bottom: 0.4rem;
-  font-weight: 700;
+#welcomeEmpty h2 { 
+  font-size: 1.6rem; 
+  color: var(--orange); 
+  margin: 0 0 0.4rem 0; 
+  font-weight: 700; 
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.1); 
+}
+
+#welcomeEmpty p { 
+  font-size: 1.1rem; 
+  color: #333; 
+  margin: 0; 
+  font-weight: 500; 
 }
 
 .welcome-arrow {
   position: fixed;
-  top: 300px;
+  top: 300px; /* regola la distanza dal box */
   left: 50%;
   transform: translateX(-50%) rotate(10deg);
   width: 240px;
+  height: auto;
   opacity: 0.9;
   z-index: 5;
   animation: arrowFloat 1.8s ease-in-out infinite;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.25));
 }
 
 @keyframes arrowFloat {
@@ -890,11 +1273,11 @@ footer {
   background: var(--panel);
   border-top: 3px solid var(--border);
   text-align: center;
-  padding: 1rem;
+  padding: 0.4rem;
   position: fixed;
   bottom: 0;
   width: 100%;
-  z-index: 5;
+  z-index: 3;
 }
 
 .add-btn {
@@ -930,26 +1313,34 @@ footer {
    ============================================= */
 .tutorial-side {
   position: fixed;
-  right: 260px;                 /* Spostato più a sinistra */
-  top: 160px;                   /* Altezza equilibrata */
-  width: 330px;
+  top: 56%;                      /* CENTRATURA IN ALTEZZA */
+  left: 50%;                     /* CENTRATURA ORIZZONTALE */
+  transform: translate(-50%, -50%) scale(1.05);
+
+  width: 330px;                  /* dimensione perfetta per note */
+  max-width:70%;
   background: #ffffff;
-  border-radius: 14px;
-  padding: 1.7rem;
-  border: 3px solid var(--orange);
-  box-shadow: 0 4px 18px rgba(0,0,0,0.18);
-  z-index: 5000;
-  
-  /* Animazione ingresso */
+  border-radius: 16px;
+  padding: 1.8rem;
+  border: 4px solid var(--orange);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
+  z-index: 3000;
+
+  /* Animazione come note expanded */
+  animation: tutorialIn 0.25s ease forwards;
   opacity: 0;
-  transform: translateX(40px);
-  animation: slideIn 0.35s ease-out forwards;
 }
 
-/* Animazione */
-@keyframes slideIn {
-  from { opacity: 0; transform: translateX(40px); }
-  to   { opacity: 1; transform: translateX(0); }
+/* Animazione elegante */
+@keyframes tutorialIn {
+  from { 
+    opacity: 0; 
+    transform: translate(-50%, -45%) scale(0.95); 
+  }
+  to { 
+    opacity: 1; 
+    transform: translate(-50%, -50%) scale(1.05); 
+  }
 }
 
 .tutorial-side-title {

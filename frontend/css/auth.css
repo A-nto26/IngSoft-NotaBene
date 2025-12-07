@@ -1,6 +1,3 @@
-/* =====================================================
-    VARIABILI GLOBALI
-   ===================================================== */
 :root {
   --mint: #67BDB4;
   --blue: #809BF2;
@@ -14,19 +11,16 @@
   --shadow: rgba(0, 0, 0, 0.15);
 }
 
-
-/* =====================================================
-   SFONDO GENERALE
-   ===================================================== */
+/* === SFONDO GENERALE === */
 body {
   margin: 0;
   font-family: "Poppins", sans-serif;
   min-height: 100vh;
-
   display: flex;
   justify-content: center;
   align-items: center;
 
+  /* 🟧 Sfondo a quadretti come dashboard */
   background-color: #fdfdfc;
   background-image: url("../img/Hot Tropics.jpg");
   background-size: 40px 40px;
@@ -34,45 +28,33 @@ body {
   color: var(--text);
 }
 
-
-/* =====================================================
-   LAYOUT GENERALE WRAPPER
-   ===================================================== */
+/* === WRAPPER GENERALE === */
 .auth-wrapper {
   display: flex;
   width: 900px;
   height: 540px;
-
   border-radius: 22px;
   overflow: hidden;
-
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
   background: var(--panel);
   border: 4px solid var(--orange);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
-
   animation: popup 0.25s ease;
 }
 
 @keyframes popup {
   from { transform: scale(0.95); opacity: 0; }
-  to   { transform: scale(1); opacity: 1; }
+  to { transform: scale(1); opacity: 1; }
 }
 
-
-/* =====================================================
-   COLONNA SINISTRA (logo + slogan)
-   ===================================================== */
+/* === COLONNA SINISTRA — IMMAGINE/LOGO === */
 .auth-side {
   flex: 1;
-  padding: 2rem;
-
   background: linear-gradient(180deg, var(--mint), var(--blue));
-
   display: flex;
-  align-items: center;
   justify-content: center;
+  align-items: center;
   flex-direction: column;
-
+  padding: 2rem;
   position: relative;
 }
 
@@ -80,10 +62,9 @@ body {
   content: "";
   position: absolute;
   inset: 0;
+  background: rgba(255,255,255,0.1);
+  border-radius: 0 80px 80px 0; /* 🟢 smussa il bordo destro */
   backdrop-filter: blur(2px);
-
-  border-radius: 0 80px 80px 0;
-  background: rgba(255, 255, 255, 0.1);
 }
 
 .logo-container {
@@ -95,41 +76,33 @@ body {
 .logo {
   width: 240px;
   height: auto;
-
-  border-radius: 20px;
-  filter: brightness(0.98);
-
+  border-radius: 20px; /* 🔹 smusso immagine */
   box-shadow: 0 6px 14px rgba(0,0,0,0.3);
+  filter: brightness(0.98);
   animation: float 4s ease-in-out infinite;
-}
-
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50%      { transform: translateY(-8px); }
 }
 
 .logo-container h2 {
   color: #fff;
-  margin-top: 1.2rem;
   font-weight: 500;
+  margin-top: 1.2rem;
   font-size: 1.2rem;
   line-height: 1.4rem;
 }
 
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
 
-/* =====================================================
-    COLONNA DESTRA (form login + register)
-   ===================================================== */
+/* === COLONNA DESTRA — FORM LOGIN / REGISTER === */
 .auth-form {
   flex: 1;
-  padding: 3rem;
-
   background: #fffdf9;
-
   display: flex;
   flex-direction: column;
   justify-content: center;
-
+  padding: 3rem;
   position: relative;
 }
 
@@ -141,39 +114,29 @@ body {
   pointer-events: none;
 }
 
-
-/* =====================================================
-    TITOLI E DESCRIZIONI FORM
-   ===================================================== */
 .auth-form h1 {
   font-size: 1.8rem;
   color: var(--orange);
-  text-align: center;
   margin-bottom: 0.3rem;
+  text-align: center;
 }
 
 .subtitle {
-  text-align: center;
   color: #666;
   font-size: 0.9rem;
   margin-bottom: 1.5rem;
+  text-align: center;
 }
 
-
-/* =====================================================
-    INPUT
-   ===================================================== */
+/* === INPUT === */
 input {
   width: 100%;
   padding: 0.8rem;
   margin-bottom: 1rem;
-
   border: 2px solid var(--border);
   border-radius: 10px;
-
-  background: #fffdfa;
   font-size: 1rem;
-
+  background: #fffdfa;
   box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.06);
   transition: all 0.25s ease;
 }
@@ -184,27 +147,19 @@ input:focus {
   box-shadow: 0 0 6px rgba(237, 128, 45, 0.4);
 }
 
-
-/* =====================================================
-    BUTTON PRIMARIO
-   ===================================================== */
+/* === BOTTONI === */
 .primary-btn {
   background-color: var(--orange);
   color: white;
-
   border: 2px solid var(--orange);
-  border-radius: 10px;
-
   width: 100%;
   padding: 0.9rem;
-
   font-size: 1rem;
   font-weight: 600;
-
+  border-radius: 10px;
   cursor: pointer;
   transition: 0.3s;
-
-  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
 }
 
 .primary-btn:hover {
@@ -213,10 +168,7 @@ input:focus {
   transform: translateY(-2px);
 }
 
-
-/* =====================================================
-    LINK SWITCH LOGIN <-> REGISTER
-   ===================================================== */
+/* === LINK LOGIN / REGISTER === */
 .switch-text {
   margin-top: 1rem;
   font-size: 0.9rem;
@@ -234,29 +186,18 @@ input:focus {
   text-decoration: underline;
 }
 
-
-/* =====================================================
-    NASCONDI SEZIONE
-   ===================================================== */
 .hidden {
   display: none;
 }
 
-
-/* =====================================================
-   MESSAGGI DI ERRORE / SUCCESSO
-   ===================================================== */
-#msg,
-#msgRegister {
+/* === MESSAGGI === */
+#msg, #msgRegister {
   margin-top: 0.8rem;
-  text-align: center;
   font-size: 0.9rem;
+  text-align: center;
 }
 
-
-/* =====================================================
-    RESPONSIVE
-   ===================================================== */
+/* === RESPONSIVE === */
 @media (max-width: 900px) {
   .auth-wrapper {
     flex-direction: column;

@@ -1,17 +1,28 @@
 package com.sweng.notes.controller;
 
-import com.sweng.notes.dto.UserRequest;
-import com.sweng.notes.dto.UserResponse;
 import com.sweng.notes.service.UserService;
-
-import java.util.List;
-
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import com.sweng.notes.dto.UserResponse;
 
+import java.util.Collection;
+
+/**
+ * Controller REST per la gestione degli utenti.
+ * - Registrazione con username + password
+ * - Login
+ * - Elenco username (per condivisione note)
+ */
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {
+        RequestMethod.GET,
+        RequestMethod.POST,
+        RequestMethod.PUT,
+        RequestMethod.DELETE,
+        RequestMethod.OPTIONS
+})
 @RestController
 @RequestMapping("/api/users")
-@CrossOrigin(origins = "*")
 public class UserController {
 
     private final UserService userService;
@@ -20,30 +31,42 @@ public class UserController {
         this.userService = userService;
     }
 
-    // ============================================================
-    // GET ALL USERS (per la condivisione note)
-    // ============================================================
-    @GetMapping
-    public ResponseEntity<List<String>> getAllUsers() {
-        return ResponseEntity.ok(userService.getAllUsernames());
+    // DTO semplice per richieste di registrazione/login
+    public static class UserRequest {
+        private String username;
+        private String password;
+
+        public UserRequest() {
+        }
+
+        public String getUsername() {
+            return username;
+        }
+
+        public void setUsername(String username) {
+            this.username = username;
+        }
+
+        public String getPassword() {
+            return password;
+        }
+
+        public void setPassword(String password) {
+            this.password = password;
+        }
     }
-    
+
     // ============================================================
-    // REGISTER
+    // REGISTRAZIONE
     // ============================================================
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@RequestBody UserRequest req) {
-
-        boolean ok = userService.register(req.getUsername(), req.getPassword());
-
-        if (!ok) {
-            return ResponseEntity.badRequest()
-                    .body(new UserResponse(false, "❌ Registrazione fallita (utente esistente o dati invalidi)"));
-        }
-
-        return ResponseEntity.ok(
-                new UserResponse(true, "✔ Registrazione completata", req.getUsername())
+        UserResponse response = userService.register(
+            req.getUsername(),
+            req.getPassword()
         );
+
+        return ResponseEntity.ok(response);
     }
 
     // ============================================================
@@ -52,15 +75,33 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@RequestBody UserRequest req) {
 
-        boolean ok = userService.login(req.getUsername(), req.getPassword());
+        UserResponse resp = userService.login(req.getUsername(), req.getPassword());
 
-        if (!ok) {
-            return ResponseEntity.badRequest()
-                    .body(new UserResponse(false, "❌ Credenziali non valide"));
+        if (!resp.isSuccess()) {
+
+            // Utente non esistente → 404
+            if ("Utente non registrato".equals(resp.getMessage())) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resp);
+            }
+
+            // Password errata → 401
+            if ("Password errata".equals(resp.getMessage())) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
+            }
+
+            // Fallback, in caso di altri messaggi
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
         }
 
-        return ResponseEntity.ok(
-                new UserResponse(true, "✔ Login effettuato", req.getUsername())
-        );
+        // Login OK
+        return ResponseEntity.ok(resp);
+    }
+
+    // ============================================================
+    // ELENCO UTENTI (per condivisione note)
+    // ============================================================
+    @GetMapping
+    public Collection<String> getAllUsernames() {
+        return userService.getAllUsernames();
     }
 }

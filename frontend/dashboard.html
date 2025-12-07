@@ -6,16 +6,34 @@
     <title>Dashboard - Note App</title>
 
     <link rel="stylesheet" href="css/dashboard.css" />
+    <link rel="stylesheet" href="css/folder-icons.css" />
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/pickr-classic.min.css" />
+    <script src="js/pickr-min.js"></script>
 </head>
 <body>
+    <!-- SPRITE SVG PER CARTELLE -->
+    <svg style="display:none;">
+        <symbol id="folder-fill" viewBox="0 0 24 24">
+            <path d="M3 6h7l2 2h9v10H3z" fill="currentColor"/>
+        </symbol>
+
+        <symbol id="folder-stroke" viewBox="0 0 24 24">
+            <path d="M3 6h7l2 2h9v10H3z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+                class="folder-stroke-path"/>
+        </symbol>
+    </svg>
 
     <div id="toastContainer"></div>
-
+    
     <header>
-        <h1>📑 LE MIE NOTE</h1>
+        <h1>📑 LE MIE NOTE </h1>
         <div class="user-info">
             <p id="welcomeUser"></p>
             <button id="logoutBtn" class="logout" aria-label="Logout">🚪LOGOUT</button>
@@ -69,32 +87,42 @@
     </section>
 
     <main>
+        <!-- Messaggio "nessun risultato" per la ricerca/filtro -->
         <div id="noResults">
             <div class="no-results">🧐 Nessuna nota trovata</div>
         </div>
 
+        <!-- Contenitore note -->
         <section id="noteList"></section>
     </main>
 
+    <!-- Benvenuto per utenti completamente nuovi (0 note) -->
     <div id="welcomeEmpty">
         <h2>✨ Benvenuto!</h2>
         <p>Crea la tua prima nota</p>
     </div>
 
+    <!-- Freccia verso "Nuova nota" -->
     <img src="img/arrow-down-left2.png" alt="Freccia verso Nuova Nota" class="welcome-arrow" />
 
+    <!-- Mini tutorial dopo la prima nota -->
     <div id="tutorialSide" class="tutorial-side" style="display:none;">
+
         <h2 class="tutorial-side-title">🎉 Complimenti!</h2>
-        <p class="tutorial-side-text">Hai appena creato la tua prima nota! ✨</p>
+
+        <p class="tutorial-side-text">
+            Hai appena creato la tua prima nota! ✨
+        </p>
+
         <p class="tutorial-side-text">
             Da ora puoi usare i <strong>Tools</strong> qui sopra per gestire al meglio le tue note.
         </p>
 
         <ul class="tutorial-side-list">
-            <li>🔍 Cerca rapidamente tra tutte le note</li>
-            <li>⭐ Filtra “Mie” o “Condivise”</li>
-            <li>📁 Organizza tramite Cartelle</li>
-            <li>➕/➖ Espandi o riduci il pannello strumenti</li>
+            <li>🔍 <strong>Cerca</strong> rapidamente tra tutte le note</li>
+            <li>⭐ Attiva/disattiva <strong>Le mie note</strong> o <strong>Condivise</strong></li>
+            <li>📁 Entra nella sezione <strong>Cartelle</strong> per organizzare tutto</li>
+            <li>➕/➖ Usa il pulsante <strong>Espandi/Riduci</strong> per mostrare o nascondere l’intero pannello degli strumenti</li>
         </ul>
 
         <button id="tutorialSideBtn" class="tutorial-side-btn">Ho capito!</button>
@@ -104,25 +132,45 @@
         <button id="addNoteBtn" class="add-btn" aria-label="Crea nuova nota">➕ NUOVA NOTA</button>
     </footer>
 
-    <!-- Modal Crea/Modifica -->
+    <!-- Modal Crea/Modifica Nota -->
     <div id="noteModal" class="modal">
         <div class="modal-content">
             <h2 id="modalTitle">📝 CREA UNA NUOVA NOTA</h2>
 
-            <div id="lockBanner" class="lock-banner"></div>
+            <div id="lockBanner" class="lock-banner" style="
+                display:none;
+                background:#ffdddd;
+                border:1px solid #ff7a7a;
+                color:#a60000;
+                padding:8px 12px;
+                margin:8px 0 12px 0;
+                font-size:0.9rem;
+                border-radius:6px;
+            ">
+                🔒 Nota bloccata da <span id="lockUser"></span> — <span id="lockTime"></span>
+            </div>
 
             <div class="field-group">
-                <label for="titolo">✏️ Titolo</label>
+                <label for="titolo">✏️ Titolo della nota</label>
                 <input type="text" id="titolo" placeholder="Scrivi il titolo della nota" />
             </div>
 
             <div class="field-group">
                 <label for="cartella">📁 Cartella (facoltativa)</label>
-                <input type="text" id="cartella" placeholder="Indica la cartella" />
+
+                <div class="cartella-wrapper">
+                    <input type="text" id="cartella" placeholder="Indica la cartella" />
+
+                    <!-- Pallino cliccabile che apre Pickr -->
+                    <div id="folderColorBtn" class="color-dot"></div>
+
+                    <!-- input nascosto per salvare il colore -->
+                    <input type="hidden" id="folderColorInput" value="#ffb347">
+                </div>
             </div>
 
             <div class="field-group">
-                <label for="contenuto">📝 Contenuto</label>
+                <label for="contenuto">📝 Contenuto della nota</label>
                 <div class="textarea-wrapper">
                     <textarea id="contenuto" placeholder="Scrivi il contenuto della nota"></textarea>
                     <span class="char-counter" id="charCount">0/280</span>
@@ -132,42 +180,45 @@
             <div class="field-group">
                 <label for="permesso">🔒 Tipo di permesso:</label>
                 <select id="permesso">
-                    <option value="PRIVATA" selected>Privata</option>
-                    <option value="LETTURA">Sola lettura</option>
-                    <option value="SCRITTURA">Scrittura</option>
+                    <option value="privata" selected>Privata</option>
+                    <option value="lettura">Sola lettura</option>
+                    <option value="scrittura">Scrittura</option>
                 </select>
             </div>
 
             <div class="share-row" id="shareSection" style="display: none;">
-                <label>🤝 Condividi con:</label>
-                <div id="shareContainer">
-                    <button id="shareNoteBtn" class="share-inline">Seleziona utenti</button>
-                    <div id="utentiSelezionati" class="utenti-lista"></div>
+                <label>
+                    👥 Condivisa con:
+                    <div id="utentiSelezionati" class="shared-users-container"></div>
+                </label>
+
+                <button id="shareNoteBtn" class="share-users-btn">👥 Utenti</button>
+
                 </div>
-            </div>
 
             <div class="modal-actions">
                 <button id="saveNoteBtn" class="save-btn">💾 SALVA</button>
                 <button id="cancelNoteBtn" class="cancel-btn">❌ ANNULLA</button>
             </div>
+
         </div>
     </div>
 
-    <!-- Modal utenti per share -->
-    <div id="shareModal" class="modal" aria-hidden="true">
-        <div class="modal-content">
-            <h2>👥 Seleziona utenti</h2>
+    <!-- Modal Share -->
+    <div id="shareModal" class="modal" >
+        <div class="modal-content" style="max-width: 480px;">
+            <h2>👥 Utenti</h2>
             <div id="userListShare" class="user-grid"></div>
             <div class="modal-actions">
-                <button id="shareSaveBtn" class="save-btn">Conferma</button>
-                <button id="shareCancelBtn" class="cancel-btn">Chiudi</button>
+                <button id="shareSaveBtn" class="save-btn"> Conferma</button>
+                <button id="shareCancelBtn" class="cancel-btn"> Chiudi</button>
             </div>
         </div>
     </div>
 
-    <!-- Modal versioni -->
-    <div id="versionModal" class="modal">
-        <div class="modal-content">
+    <!-- Modal Versioni -->
+    <div id="versionModal" class="modal" >
+        <div class="modal-content" style="max-width: 75%; max-height: 75%;">
             <h2>🕓 Versioni precedenti</h2>
             <div id="versionListModal"></div>
             <div class="modal-actions">
@@ -176,6 +227,7 @@
         </div>
     </div>
 
+    <script src="js/lock-system.js"></script>
     <script src="js/dashboard.js"></script>
 </body>
 </html>

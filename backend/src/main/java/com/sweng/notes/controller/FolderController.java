@@ -9,9 +9,19 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller REST per la gestione delle cartelle persistenti.
+ * Permette di creare, leggere, eliminare e visualizzare note per cartella.
+ */
 @RestController
 @RequestMapping("/api/folders")
-@CrossOrigin(origins = "*")
+@CrossOrigin(origins = "*", allowedHeaders = "*", methods = {
+        RequestMethod.GET,
+        RequestMethod.POST,
+        RequestMethod.PUT,
+        RequestMethod.DELETE,
+        RequestMethod.OPTIONS
+})
 public class FolderController {
 
     private final FolderService folderService;
@@ -21,31 +31,33 @@ public class FolderController {
     }
 
     // ============================================================
-    // LETTURA CARTELLE
+    // LETTURA
     // ============================================================
 
+    /** Restituisce tutte le cartelle persistenti */
     @GetMapping
     public ResponseEntity<List<Cartella>> getAllFolders() {
-        return ResponseEntity.ok(folderService.getAllFolders());
+        List<Cartella> folders = folderService.getAllFolders();
+        return ResponseEntity.ok(folders);
     }
 
+    /** Restituisce tutte le note contenute in una cartella */
     @GetMapping("/{nome}")
     public ResponseEntity<List<Note>> getNotesInFolder(@PathVariable String nome) {
-        return ResponseEntity.ok(folderService.getNotesInFolder(nome));
+        List<Note> notes = folderService.getNotesInFolder(nome);
+        return ResponseEntity.ok(notes);
     }
 
     // ============================================================
-    // CREAZIONE CARTELLA
+    // CREAZIONE
     // ============================================================
 
+    /** Crea una nuova cartella persistente con colore e autore */
     @PostMapping
     public ResponseEntity<String> createFolder(@RequestBody FolderRequest req) {
-
         if (req.getNome() == null || req.getNome().isBlank()) {
-            return ResponseEntity.badRequest().body("Il nome della cartella è obbligatorio.");
+            return ResponseEntity.badRequest().body("⚠️ Il nome della cartella è obbligatorio.");
         }
-
-        String nome = req.getNome().trim();
 
         String colore = (req.getColore() == null || req.getColore().isBlank())
                 ? "#FFD700"
@@ -56,37 +68,39 @@ public class FolderController {
                 : req.getCreatore();
 
         try {
-            folderService.createFolder(nome, colore, creatore);
-            return ResponseEntity.ok("Cartella '" + nome + "' creata correttamente.");
-        } catch (Exception e) {
+            folderService.createFolder(req.getNome().trim().toLowerCase(), colore, creatore);
+            return ResponseEntity.ok("📁 Cartella '" + req.getNome() + "' creata con colore " + colore);
+        } catch (IllegalArgumentException e) {
             return ResponseEntity.status(409).body(e.getMessage());
         }
     }
 
     // ============================================================
-    // ELIMINAZIONE CARTELLA
+    // ELIMINAZIONE
     // ============================================================
 
+    /** Elimina una cartella esistente */
     @DeleteMapping("/{nome}")
     public ResponseEntity<String> deleteFolder(@PathVariable String nome) {
-
-        if (nome == null || nome.isBlank()) {
-            return ResponseEntity.badRequest().body("Nome cartella non valido.");
-        }
-
         folderService.deleteFolder(nome);
-        return ResponseEntity.ok("Cartella '" + nome + "' eliminata.");
+        return ResponseEntity.ok("🗑️ Cartella '" + nome + "' eliminata con successo.");
     }
 
     // ============================================================
     // NOTE VISIBILI PER UTENTE
     // ============================================================
 
+    /** Restituisce tutte le note (proprie o condivise) visibili per un utente */
     @GetMapping("/{nome}/user/{username}")
     public ResponseEntity<List<Note>> getNotesInFolderForUser(
             @PathVariable String nome,
             @PathVariable String username) {
 
-        return ResponseEntity.ok(folderService.getNotesInFolderForUser(nome, username));
+        if (nome == null || nome.isBlank() || username == null || username.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        List<Note> notes = folderService.getNotesInFolderForUser(nome, username);
+        return ResponseEntity.ok(notes);
     }
 }

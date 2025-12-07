@@ -17,7 +17,7 @@ public class FolderService {
     }
 
     // ============================================================
-    // OPERAZIONI BASE
+    // CARTELLE - OPERAZIONI BASE
     // ============================================================
 
     /** Restituisce tutte le cartelle esistenti */
@@ -39,14 +39,19 @@ public class FolderService {
             throw new IllegalArgumentException("Nome cartella obbligatorio");
         }
 
-        String nome = nomeCartella.trim();
+        String nomeNorm = nomeCartella.trim().toLowerCase();
+        String creatoreNorm = creatore != null ? creatore.trim().toLowerCase() : null;
 
         // Controllo PR-friendly per cartelle duplicate
-        if (noteRepo.findFolderByName(nome) != null) {
-            throw new IllegalArgumentException("La cartella '" + nome + "' esiste già.");
+        if (noteRepo.findFolderByName(nomeNorm) != null) {
+            throw new IllegalArgumentException("La cartella '" + nomeNorm + "' esiste già.");
         }
 
-        noteRepo.createFolder(nome, creatore, colore);
+        String coloreEffettivo = (colore == null || colore.isBlank())
+                ? "#FFD700"
+                : colore;
+
+        noteRepo.createFolder(nomeNorm, creatoreNorm, coloreEffettivo);
     }
 
     /** Elimina una cartella esistente (e dissocia le note) */
@@ -58,31 +63,29 @@ public class FolderService {
     }
 
     // ============================================================
-    // NOTE VISIBILI PER UTENTE (SPRINT 3)
+    // NOTE VISIBILI PER UTENTE (PROPRIE + CONDIVISE)
     // ============================================================
 
     /**
-     * Restituisce le note visibili per un utente in una cartella:
-     *  - autore → sempre visibile
-     *  - condivise → visibili solo se n.puoLeggere(username)
+     * Restituisce tutte le note in una determinata cartella
+     * visibili per un utente (regola Sprint 4).
+     * usa: note.puoLeggere(username)
      */
     public List<Note> getNotesInFolderForUser(String nomeCartella, String username) {
 
-        if (nomeCartella == null || nomeCartella.isBlank()
-                || username == null || username.isBlank()) {
-            return Collections.emptyList();
+        if (nomeCartella == null || nomeCartella.isBlank() || 
+            username == null || username.isBlank()) {
+                return Collections.emptyList();
         }
 
         String folderKey = nomeCartella.trim().toLowerCase();
+        String userNorm = username.trim().toLowerCase();
 
         List<Note> tutte = noteRepo.findByCartella(folderKey);
         List<Note> visibili = new ArrayList<>();
 
         for (Note n : tutte) {
-            if (username.equalsIgnoreCase(n.getCreatore())) {
-                visibili.add(n);
-            } 
-            else if (n.puoLeggere(username)) {  // ⭐ MIGLIORIA Sprint 3
+            if (n.puoLeggere(userNorm)) {
                 visibili.add(n);
             }
         }

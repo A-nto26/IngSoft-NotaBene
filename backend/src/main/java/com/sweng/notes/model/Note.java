@@ -29,7 +29,7 @@ public class Note implements Serializable {
     private List<VersioneNota> versioni;
 
     // ===== Permessi =====
-    // Il permesso viene impostato SOLO in creazione (regola Sprint 3)
+    // Il permesso viene impostato SOLO in creazione
     private Permesso permesso;
 
     // ===== Metadati =====
@@ -40,6 +40,9 @@ public class Note implements Serializable {
     // ===== Lock concorrente =====
     private String lockedBy;
     private LocalDateTime lockedAt;
+
+    // ===== Colore cartella =====
+    private String coloreCartella;
 
     // ============================================================
     // COSTRUTTORI
@@ -65,6 +68,8 @@ public class Note implements Serializable {
 
         this.lockedBy = null;
         this.lockedAt = null;
+
+        this.coloreCartella = "#ffb347";
     }
 
     public Note(int id, String titolo, String contenuto, String creatore, String cartella) {
@@ -84,6 +89,12 @@ public class Note implements Serializable {
 
         this.lockedBy = null;
         this.lockedAt = null;
+
+        this.coloreCartella = "#ffb347";
+    }
+
+    public Note(String titolo, String contenuto, String cartella) {
+        this(0, titolo, contenuto, null, cartella);
     }
 
     // ============================================================
@@ -104,7 +115,6 @@ public class Note implements Serializable {
 
     public void setTitolo(String titolo) {
         this.titolo = titolo;
-        this.lastModifiedAt = LocalDateTime.now();
     }
 
     public String getContenuto() {
@@ -113,7 +123,6 @@ public class Note implements Serializable {
 
     public void setContenuto(String contenuto) {
         this.contenuto = contenuto;
-        this.lastModifiedAt = LocalDateTime.now();
     }
 
     public String getCreatore() {
@@ -156,7 +165,6 @@ public class Note implements Serializable {
         return permesso;
     }
 
-    // permesso impostato solo in creazione (regola Sprint 3)
     public void setPermesso(Permesso permesso) {
         this.permesso = permesso;
     }
@@ -201,6 +209,14 @@ public class Note implements Serializable {
         this.lockedAt = lockedAt;
     }
 
+    public String getColoreCartella() {
+        return coloreCartella;
+    }
+
+    public void setColoreCartella(String coloreCartella) {
+        this.coloreCartella = coloreCartella;
+    }
+
     // ============================================================
     // METODI LOGICI
     // ============================================================
@@ -230,6 +246,11 @@ public class Note implements Serializable {
         }
     }
 
+    /** Cambia tipo permesso */
+    public void cambiaPermesso(Permesso nuovoPermesso) {
+        this.permesso = nuovoPermesso;
+    }
+
     /** L’utente può leggere? */
     public boolean puoLeggere(String username) {
         if (username == null)
@@ -237,7 +258,8 @@ public class Note implements Serializable {
         if (creatore != null && username.equalsIgnoreCase(creatore))
             return true;
 
-        return utentiCondivisi.contains(username)
+        return utentiCondivisi != null
+                && utentiCondivisi.contains(username)
                 && permesso != null
                 && permesso.puoLeggere();
     }
@@ -249,15 +271,52 @@ public class Note implements Serializable {
         if (creatore != null && username.equalsIgnoreCase(creatore))
             return true;
 
-        return utentiCondivisi.contains(username)
+        return utentiCondivisi != null
+                && utentiCondivisi.contains(username)
                 && permesso != null
                 && permesso.puoScrivere();
+    }
+
+    // ============================================================
+    // METODI DI SUPPORTO PER LOCK
+    // ============================================================
+
+    /** True se esiste un lock attivo (lockedBy + lockedAt non null) */
+    public boolean hasActiveLock() {
+        return lockedBy != null && lockedAt != null;
+    }
+
+    /** True se la nota è lockata proprio da questo utente */
+    public boolean isLockedBy(String username) {
+        if (username == null)
+            return false;
+        return lockedBy != null && lockedBy.equalsIgnoreCase(username);
+    }
+
+    /** True se il lock è scaduto rispetto al timeout */
+    public boolean isLockExpired(long timeoutMinutes) {
+        if (lockedAt == null)
+            return true;
+        return lockedAt.plusMinutes(timeoutMinutes).isBefore(LocalDateTime.now());
+    }
+
+    /** Imposta il lock a questo utente e aggiorna lockedAt */
+    public void acquireLock(String username) {
+        this.lockedBy = username;
+        this.lockedAt = LocalDateTime.now();
+    }
+
+    /** Cancella completamente il lock */
+    public void clearLock() {
+        this.lockedBy = null;
+        this.lockedAt = null;
     }
 
     @Override
     public String toString() {
         return "Note{id=" + id +
                 ", titolo='" + titolo + '\'' +
+                ", cartella='" + cartella + '\'' +
                 ", creatore='" + creatore + '\'' +
                 ", permesso='" + (permesso != null ? permesso.getTipo() : "N/A") + '\'' +
                 ", createdAt=" + createdAt +

@@ -8,19 +8,16 @@ package com.sweng.notes.dto;
  * - colore: opzionale, default "#FFD700"
  */
 public class FolderRequest {
-
     private String nome;
     private String creatore;
-    private String colore;
+    private String colore; 
 
     public String getNome() {
         return nome;
     }
 
     public void setNome(String nome) {
-        this.nome = (nome != null && !nome.isBlank())
-                ? nome.trim()
-                : null;
+        this.nome = (nome == null ? null : nome.trim());
     }
 
     public String getCreatore() {
@@ -28,9 +25,7 @@ public class FolderRequest {
     }
 
     public void setCreatore(String creatore) {
-        this.creatore = (creatore != null && !creatore.isBlank())
-                ? creatore.trim().toLowerCase()
-                : null;
+        this.creatore = (creatore == null ? null : creatore.trim().toLowerCase());
     }
 
     public String getColore() {
@@ -39,7 +34,7 @@ public class FolderRequest {
 
     public void setColore(String colore) {
         if (colore == null || colore.isBlank()) {
-            this.colore = "#FFD700"; // default coerente con Cartella
+            this.colore = "#FFD700";  
         } else {
             this.colore = colore.trim();
         }

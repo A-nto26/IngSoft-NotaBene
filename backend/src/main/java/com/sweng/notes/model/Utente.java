@@ -23,12 +23,12 @@ public class Utente implements Serializable {
     public Utente() {
     }
 
+    /** Costruttore principale */
     public Utente(String username, String passwordHash) {
         this.username = (username != null)
                 ? username.trim().toLowerCase()
                 : null;
 
-        // Evita utenti con password null (UserService garantisce hashing)
         this.passwordHash = (passwordHash != null && !passwordHash.isBlank())
                 ? passwordHash
                 : null;
@@ -64,6 +64,6 @@ public class Utente implements Serializable {
 
     @Override
     public String toString() {
-        return "Utente{username='" + username + "'}";
+        return " ✅ Utente{ username='" + username + "' }";
     }
 }
