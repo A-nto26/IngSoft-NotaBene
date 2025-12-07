@@ -31,7 +31,7 @@ document.getElementById("showLogin").addEventListener("click", (e) => {
 
 // === REGISTRAZIONE ===
 document.getElementById("registerBtn").addEventListener("click", async () => {
-  const username = newUsername.value.trim();
+  const username = newUsername.value.trim().toLowerCase();
   const password = newPassword.value.trim();
   const confirm  = confirmPassword.value.trim();
 
@@ -79,7 +79,7 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
 
 // === LOGIN ===
 document.getElementById("loginBtn").addEventListener("click", async () => {
-  const username = document.getElementById("username").value.trim();
+  const username = document.getElementById("username").value.trim().toLowerCase();
   const password = document.getElementById("password").value.trim();
 
   if (!username || !password) {
@@ -101,7 +101,8 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       msg.textContent = "✅ Accesso effettuato!";
       msg.style.color = "green";
 
-      localStorage.setItem("loggedUser", username);
+      // ⭐ Sprint 4: salva username validato dal backend
+      localStorage.setItem("loggedUser", data.username);
 
       setTimeout(() => window.location.href = "dashboard.html", 900);
 

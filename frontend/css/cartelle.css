@@ -1,0 +1,587 @@
+:root {
+  --mint: #67BDB4;
+  --blue: #809BF2;
+  --red: #EE5B60;
+  --yellow: #EEC558;
+  --green: #84D879;
+  --orange: #ED802D;
+  --panel: #fffdfa;
+  --text: #2c2c2c;
+  --border: #c4b8a4;
+  --shadow: rgba(0, 0, 0, 0.1);
+}
+
+body {
+  font-family: "Poppins", sans-serif;
+  background-color: #fdfdfc;
+  background-image: url("../img/Hot Tropics.jpg");
+  background-size: 40px 40px;
+  background-repeat: repeat;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* HEADER */
+header {
+  background: linear-gradient(180deg, #2b2b3b, #1c1c27);
+  color: white;
+  border-bottom: 4px solid #111;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem 2rem;
+}
+
+header h1 {
+  color: var(--yellow);
+  margin: 0;
+}
+
+#homeLink {
+  color: var(--yellow);
+  text-decoration: none;
+}
+
+#homeLink:hover {
+  opacity: 0.8;
+}
+
+.user-info {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logout {
+  background: var(--yellow);
+  color: #111;
+  border: 1px solid var(--orange);
+  padding: .5rem 1rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+/* LAYOUT PRINCIPALE */
+#pageLayout {
+  display: flex;
+  flex: 1;
+}
+
+/* SIDEBAR CARTELLE */
+#folderList {
+  width: 260px;
+  background: var(--panel);
+  border-right: 3px solid var(--border);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+#folderList h2 {
+  color: var(--orange);
+  margin: 0 0 1rem 0;
+}
+
+#folderItems {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+#folderItems li {
+  padding: .6rem .4rem;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 500;
+}
+
+#folderItems li:hover {
+  background: #ffe7d1;
+}
+
+#folderItems li.active {
+  background: var(--orange);
+  color: white;
+}
+
+/* Pulsante Nuova Cartella */
+.folder-btn {
+  background: var(--orange);
+  color: white;
+  padding: 0.4rem 0.8rem;
+  border-radius: 8px;
+  border: none;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.25s ease;
+}
+
+.folder-btn:hover {
+  background: var(--yellow);
+  color: var(--text);
+}
+
+/* AREA NOTE */
+main {
+  flex: 1;
+  padding: 2rem;
+}
+
+/* Ricerca */
+.search-wrapper {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  background: #fffdfa;
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  padding: .5rem .8rem;
+  max-width: 480px;
+}
+
+.search-icon {
+  font-size: 1.2rem;
+  color: var(--orange);
+}
+
+#searchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  flex: 1;
+}
+
+/* NOTE */
+#noteList {
+  margin-top: 1.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(320px, 1fr));
+  gap: 20px;
+  padding: 20px;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
+  justify-content: center;
+}
+
+#noteList .note-card {
+    background: var(--panel);
+    border: 2px solid var(--red);
+    border-radius: 10px;
+    padding: 1.2rem 1.4rem;
+    box-shadow: 0 5px 12px rgba(0,0,0,0.15);
+    transition: all 0.25s ease;
+    cursor: pointer;
+    position: relative;
+}
+
+#noteList .note-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0,0,0,0.22);
+}
+
+#noteList .note-card h2 {
+  font-size: 1.2rem;
+  color: var(--orange);
+  margin: 0 0 0.6rem;
+}
+
+#noteList .note-card p {
+  font-size: 0.95rem;
+  color: var(--text);
+  opacity: 0.9;
+  margin: 0;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+#noteList .note-card.note-private {
+    border-color: var(--red);
+    box-shadow: 0 4px 10px rgba(255, 97, 97, 0.25);
+}
+
+/* Permessi coerenti */
+#noteList .note-card.shared-read {
+  border-color: var(--blue);
+  box-shadow: 0 4px 10px rgba(128, 155, 242, 0.25);
+}
+
+#noteList .note-card.shared-write {
+  border-color: var(--green);
+  box-shadow: 0 4px 10px rgba(132, 216, 121, 0.25);
+}
+
+.version-badge-folder {
+  position: relative;
+  top: 0;
+  right: 0;
+  background: var(--blue);
+  color: white;
+  font-weight: 700;
+  font-size: 0.8rem;
+  padding: 6px 10px 4px;
+  border-radius: 4px 4px 0 0;
+
+  /* stessa forma della dashboard */
+  clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
+
+  font-family: "Courier New", monospace;
+  text-transform: uppercase;
+
+  z-index: 50;
+  opacity: 1 !important;
+  pointer-events: none;
+}
+
+/* impedisce che hover della dashboard nasconda o modifichi il badge */
+#noteList .note-card:hover .version-badge-folder {
+  opacity: 1 !important;
+  transform: none !important;
+}
+
+/* Layout responsive */
+@media (max-width: 1100px) {
+
+  /* Riduce sidebar */
+  #folderList {
+    width: 180px;
+  }
+
+  /* Riduce padding del contenuto */
+  main {
+    padding-left: 1rem !important;
+    padding-right: 1rem !important;
+  }
+
+  /* Una colonna */
+  #noteList {
+    grid-template-columns: 1fr !important;
+    justify-items: center;
+  }
+
+  /* Card centrata */
+  #noteList .note-card {
+    max-width: 250px;
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* Nessun risultato */
+#noResults {
+  display: none;
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.no-results {
+  background: var(--panel);
+  border: 2px solid var(--orange);
+  padding: 1rem 2rem;
+  display: inline-block;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+/* Pulsante Torna alla Dashboard */
+.back-btn {
+  margin-top: auto;
+  background: var(--orange);
+  color: white;
+  border: none;
+  padding: .7rem 1rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: 0.25s ease;
+}
+
+.back-btn:hover {
+  background: var(--yellow);
+  color: var(--text);
+}
+
+/* === MODALE PREVIEW === */
+.modal {
+  position: fixed;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  background: rgba(0,0,0,0.45);
+  backdrop-filter: blur(3px);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 200;
+}
+
+.modal-content {
+  background: var(--panel);
+  border: 4px solid var(--orange);
+  border-radius: 12px;
+  padding: 2rem;
+  width: 480px;
+  max-width: 95%;
+  max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+  animation: fadeIn 0.25s ease;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.cancel-btn {
+  background-color: var(--red);
+  color: white;
+  font-weight: 600;
+  padding: 0.7rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.cancel-btn:hover {
+  background-color: #d9534f;
+}
+
+.empty-message {
+  position: absolute;
+  top: 40%;
+  left: 62%;
+  transform: translate(-50%, -50%);
+  background: var(--panel);
+  border: 2px solid var(--orange);
+  border-radius: 10px;
+  padding: 1rem 2rem;
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  display: flex;
+  gap: 0.6rem;
+  z-index: 5;
+}
+
+.empty-message.hidden {
+  display: none !important;
+}
+
+/* ============================================================
+   TOAST - Stile coerente con la Dashboard
+   ============================================================ */
+
+#toastContainer {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 999999999 !important;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Base toast */
+.toast {
+  min-width: 260px;
+  max-width: 360px;
+  background: white;
+  padding: 14px 18px;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--text);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.18);
+  opacity: 0;
+  transform: translateX(40px);
+  animation: toastIn 0.4s forwards, toastOut 0.4s ease-in-out 10s forwards;
+}
+
+/* SUCCESS → verde */
+.toast-success {
+  border: 2px solid var(--green);
+}
+
+/* ERROR → rosso */
+.toast-error {
+  border: 2px solid var(--red);
+}
+
+/* INFO → giallo */
+.toast-info {
+  border: 2px solid var(--yellow);
+}
+
+/* ============================================
+   TOAST DI INPUT + TOAST DI CONFERMA → bordi blu
+   ============================================ */
+
+.toast-confirm,
+.toast-input {
+  border: 2px solid var(--blue);
+  background: white;
+  animation: toastIn 0.35s forwards;  /* niente auto-hide */
+  padding: 20px 22px;
+  border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  max-width: 340px;
+}
+
+/* Bottoni interni */
+.toast-confirm button,
+.toast-input button {
+  padding: 6px 14px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  font-weight: 600;
+  min-width: 80px;
+}
+
+/* OK (verde) */
+.toast-confirm .yes-btn,
+.toast-input .yes-btn,
+.toast-btn-ok {
+  background: var(--green);
+  color: white;
+}
+
+/* Annulla (rosso) */
+.toast-confirm .no-btn,
+.toast-input .no-btn,
+.toast-btn-cancel {
+  background: var(--red);
+  color: white;
+}
+
+/* Campo input nel toast */
+.toast-input-field {
+  width: 220px;                /* più piccolo e armonico */
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 2px solid var(--blue);
+  font-size: 0.9rem;
+  outline: none;
+  transition: 0.2s ease;
+}
+
+.toast-input-field:focus {
+  border-color: #5677f0;
+  box-shadow: 0 0 4px rgba(86, 119, 240, 0.4);
+}
+
+/* Animazioni */
+@keyframes toastIn {
+  from { opacity: 0; transform: translateX(40px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes toastOut {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(40px); }
+}
+
+
+.card-header {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+
+    display: flex;
+    flex-direction: row;      /* orizzontale */
+    align-items: center;
+    gap: 6px;                 /* spazio ESATTO fra ⋮ e v1 */
+    z-index: 50;
+}
+
+/* Numero versione */
+.version-badge {
+    background: #444;
+    color: white;
+    padding: 3px 6px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+}
+
+/* Badge permesso */
+.permesso-badge {
+    padding: 3px 8px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 500;
+    color: #fff;
+}
+
+.permesso-badge.privata   { background: #444; }
+.permesso-badge.lettura   { background: var(--blue); }
+.permesso-badge.scrittura { background: var(--green); }
+
+/* ============================================================
+   MENU TRE PUNTINI (⋮) SULLE NOTE
+   ============================================================ */
+.note-menu-btn {
+    background: transparent;
+    border: none;
+    font-size: 1.35rem;
+    line-height: 1;
+    padding: 0;
+    margin: 0;
+    cursor: pointer;
+    color: #666;
+    transition: 0.2s ease;
+}
+
+.note-menu-btn:hover {
+    color: #000;
+    transform: scale(1.15);
+}
+
+.note-menu {
+    position: absolute;
+    top: 30px;
+    right: 0;
+    background: white;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 6px 0;
+    display: none;
+    z-index: 200;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.18);
+    min-width: 140px;
+}
+
+.note-menu.open {
+    display: block;
+}
+
+.note-menu button {
+    background: none;
+    border: none;
+    width: 100%;
+    text-align: left;
+    padding: 10px 14px;
+    font-size: 0.9rem;
+    cursor: pointer;
+}
+
+.note-menu button:hover {
+    background: #f2f2f2;
+}
+
+.delete-note-btn {
+    color: var(--red);
+    font-weight: 600;
+}

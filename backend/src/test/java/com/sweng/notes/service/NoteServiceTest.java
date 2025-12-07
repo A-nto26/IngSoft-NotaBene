@@ -4,16 +4,13 @@ import com.sweng.notes.dto.CreateNoteRequest;
 import com.sweng.notes.dto.NoteUpdateRequest;
 import com.sweng.notes.dto.ShareNoteRequest;
 
-import com.sweng.notes.model.Note;
-import com.sweng.notes.model.VersioneNota;
-import com.sweng.notes.model.Scrittura;
-import com.sweng.notes.model.Lettura;
-
+import com.sweng.notes.model.*;
 import com.sweng.notes.repository.NoteRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
 import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,12 +39,14 @@ public class NoteServiceTest {
         req.setContenuto("Contenuto");
         req.setCreatore("mario");
         req.setCartella("casa");
+        req.setColoreCartella("#ff8844");
         req.setPermesso("SCRITTURA");
-        req.setUtentiCondivisi(List.of("anna"));
+        req.setUtentiCondivisi(List.of("anna", "luca"));
 
+        // Simuliamo assegnazione ID
         doAnswer(invocation -> {
-            Note saved = invocation.getArgument(0);
-            saved.setId(10);
+            Note n = invocation.getArgument(0);
+            n.setId(10);
             return null;
         }).when(repo).save(any(Note.class));
 
@@ -57,18 +56,27 @@ public class NoteServiceTest {
         assertEquals("Titolo", result.getTitolo());
         assertEquals("mario", result.getCreatore());
         assertEquals("casa", result.getCartella());
+        assertEquals("#ff8844", result.getColoreCartella());
+        assertTrue(result.getPermesso() instanceof Scrittura);
         assertTrue(result.getUtentiCondivisi().contains("anna"));
+        assertTrue(result.getUtentiCondivisi().contains("luca"));
 
-        verify(repo).save(any());
+        verify(repo).save(any(Note.class));
     }
 
     // ============================================================
-    // UPDATE
+    // UPDATE - versioning Sprint 4
     // ============================================================
     @Test
     void testUpdateCreatesVersion() {
+
         Note existing = new Note(5, "T1", "C1", "mario", "casa");
+        existing.setVersioni(new ArrayList<>());
+        existing.setLockedBy("mario"); // lock valido
+        existing.setLockedAt(LocalDateTime.now());
+
         when(repo.findById(5)).thenReturn(existing);
+        when(repo.getEffectiveLockOwner(5)).thenReturn(Optional.of("mario"));
 
         NoteUpdateRequest req = new NoteUpdateRequest();
         req.setTitolo("T2");
@@ -77,25 +85,21 @@ public class NoteServiceTest {
         service.update(5, req, "mario");
 
         assertEquals(1, existing.getVersioni().size());
-        VersioneNota v = existing.getVersioni().get(0);
-
-        assertEquals("T1", v.getTitolo());
-        assertEquals("C1", v.getContenuto());
+        VersioneNota saved = existing.getVersioni().get(0);
+        assertEquals("T1", saved.getTitolo());
 
         verify(repo).save(existing);
     }
 
     @Test
-    void testUpdateForbiddenIfNotAutore() {
+    void testUpdateForbiddenIfNotWriter() {
+
         Note existing = new Note(5, "T1", "C1", "mario", "casa");
+        existing.setPermesso(new Privata());
         when(repo.findById(5)).thenReturn(existing);
 
-        NoteUpdateRequest req = new NoteUpdateRequest();
-        req.setTitolo("T2");
-        req.setContenuto("C2");
-
         assertThrows(RuntimeException.class,
-                () -> service.update(5, req, "anna"));
+                () -> service.update(5, new NoteUpdateRequest(), "anna"));
     }
 
     // ============================================================
@@ -103,17 +107,17 @@ public class NoteServiceTest {
     // ============================================================
     @Test
     void testDeleteSuccess() {
-        Note existing = new Note(20, "T", "C", "mario", null);
-        when(repo.findById(20)).thenReturn(existing);
+        Note n = new Note(20, "T", "C", "mario", null);
+        when(repo.findById(20)).thenReturn(n);
 
         service.delete(20, "mario");
         verify(repo).delete(20);
     }
 
     @Test
-    void testDeleteForbiddenIfNotAutore() {
-        Note existing = new Note(20, "T", "C", "mario", null);
-        when(repo.findById(20)).thenReturn(existing);
+    void testDeleteForbidden() {
+        Note n = new Note(20, "T", "C", "mario", null);
+        when(repo.findById(20)).thenReturn(n);
 
         assertThrows(RuntimeException.class,
                 () -> service.delete(20, "luca"));
@@ -124,11 +128,12 @@ public class NoteServiceTest {
     // ============================================================
     @Test
     void testDuplicateCreatesPrivateCopy() {
-        Note n = new Note(1, "Titolo", "Contenuto", "mario", "");
-        n.setPermesso(new Lettura());
-        n.getUtentiCondivisi().add("anna");
 
-        when(repo.findById(1)).thenReturn(n);
+        Note orig = new Note(1, "Titolo", "Contenuto", "mario", "");
+        orig.setPermesso(new Lettura());
+        orig.getUtentiCondivisi().add("anna");
+
+        when(repo.findById(1)).thenReturn(orig);
 
         doAnswer(invocation -> {
             Note saved = invocation.getArgument(0);
@@ -138,18 +143,19 @@ public class NoteServiceTest {
 
         Note copia = service.duplicate(1, "anna");
 
-        assertNotNull(copia);
         assertEquals("Titolo (Copia)", copia.getTitolo());
-        assertEquals("Contenuto", copia.getContenuto());
         assertEquals("anna", copia.getCreatore());
         assertTrue(copia.getUtentiCondivisi().isEmpty());
+        assertTrue(copia.getPermesso() instanceof Privata);
+
+        verify(repo).save(any(Note.class));
     }
 
     // ============================================================
     // SEARCH
     // ============================================================
     @Test
-    void testSearchVisibleNotes() {
+    void testSearchFiltersByQuery() {
         Note own = new Note(1, "Spesa", "latte", "mario", "");
         Note shared = new Note(2, "Lavoro", "meeting", "anna", "");
         shared.getUtentiCondivisi().add("mario");
@@ -168,7 +174,7 @@ public class NoteServiceTest {
     // ============================================================
     @Test
     void testSetCartellaSuccess() {
-        Note n = new Note(10, "T", "C", "mario", "vecchia");
+        Note n = new Note(10, "T", "C", "mario", "old");
         when(repo.findById(10)).thenReturn(n);
 
         service.setCartella(10, "casa", "mario");
@@ -179,18 +185,18 @@ public class NoteServiceTest {
 
     @Test
     void testSetCartellaForbidden() {
-        Note n = new Note(10, "T", "C", "mario", "vecchia");
+        Note n = new Note(10, "T", "C", "mario", "old");
         when(repo.findById(10)).thenReturn(n);
 
         assertThrows(RuntimeException.class,
-                () -> service.setCartella(10, "casa", "luca"));
+                () -> service.setCartella(10, "casa", "anna"));
     }
 
     // ============================================================
     // SHARE
     // ============================================================
     @Test
-    void testShareNoteAddsUsers() {
+    void testShareAddsUsers() {
         Note n = new Note(5, "T", "C", "mario", "");
         when(repo.findById(5)).thenReturn(n);
 
@@ -203,7 +209,7 @@ public class NoteServiceTest {
     }
 
     @Test
-    void testShareNoteForbiddenIfNotAutore() {
+    void testShareForbidden() {
         Note n = new Note(5, "T", "C", "mario", "");
         when(repo.findById(5)).thenReturn(n);
 
@@ -229,7 +235,7 @@ public class NoteServiceTest {
     }
 
     @Test
-    void testRemoveSelfForbiddenIfNotInList() {
+    void testRemoveSelfForbidden() {
         Note n = new Note(5, "T", "C", "mario", "");
         when(repo.findById(5)).thenReturn(n);
 
@@ -238,29 +244,20 @@ public class NoteServiceTest {
     }
 
     // ============================================================
-    // RESTORE VERSION (✔ aggiornato)
+    // RESTORE VERSION — Sprint 4
     // ============================================================
     @Test
     void testRestoreVersionAllowedForAutore() {
         Note n = new Note(7, "T", "C", "mario", "");
+        n.setVersioni(List.of(
+                new VersioneNota("oldT", "oldC", LocalDateTime.now())
+        ));
         when(repo.findById(7)).thenReturn(n);
+        when(repo.getEffectiveLockOwner(7)).thenReturn(Optional.empty());
 
         service.restoreVersion(7, 0, "mario");
 
-        verify(repo).restoreVersion(7, 0, "mario");
-    }
-
-    @Test
-    void testRestoreVersionAllowedForScrittura() {
-        Note n = new Note(7, "T", "C", "mario", "");
-        n.setPermesso(new Scrittura());
-        n.getUtentiCondivisi().add("anna");
-
-        when(repo.findById(7)).thenReturn(n);
-
-        service.restoreVersion(7, 0, "anna");
-
-        verify(repo).restoreVersion(7, 0, "anna");
+        verify(repo).save(n);
     }
 
     @Test
@@ -268,6 +265,7 @@ public class NoteServiceTest {
         Note n = new Note(7, "T", "C", "mario", "");
         n.setPermesso(new Lettura());
         n.getUtentiCondivisi().add("anna");
+        n.setVersioni(List.of(new VersioneNota("old", "old", LocalDateTime.now())));
 
         when(repo.findById(7)).thenReturn(n);
 

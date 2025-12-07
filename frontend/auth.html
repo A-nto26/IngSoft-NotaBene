@@ -8,9 +8,11 @@
 </head>
 <body>
 
+  <div class="overlay"></div>
+
   <div class="auth-wrapper">
 
-    <!-- COLONNA SINISTRA (Logo) -->
+    <!--  Sezione logo / slogan -->
     <div class="auth-side">
       <div class="logo-container">
         <img src="img/logo-notabene.png" alt="Logo Nota Bene" class="logo" />
@@ -18,35 +20,34 @@
       </div>
     </div>
 
-    <!-- COLONNA DESTRA (Form login/register) -->
+    <!-- Sezione form -->
     <div class="auth-form">
-
+      
       <!-- LOGIN -->
       <div id="loginSection">
         <h1>BENVENUTO!</h1>
-        <p class="subtitle">Accedi per continuare.</p>
+        <p class="subtitle">Accedi per continuare a scrivere, salvare e condividere le tue note.</p>
 
-        <input type="text" id="username" placeholder="Username" autocomplete="off" />
-        <input type="password" id="password" placeholder="Password" autocomplete="off" />
-
+        <input type="text" id="username" placeholder="Username" required autocomplete="off" />
+        <input type="password" id="password" placeholder="Password" required autocomplete="off" />
+        
         <button id="loginBtn" class="primary-btn">Accedi</button>
 
         <p class="switch-text">
           Non hai un account?
           <a href="#" id="showRegister">Registrati</a>
         </p>
-
         <p id="msg"></p>
       </div>
 
-      <!-- REGISTER -->
+      <!-- REGISTRAZIONE -->
       <div id="registerSection" class="hidden">
         <h1>Crea un account</h1>
-        <p class="subtitle">Registrati per iniziare.</p>
+        <p class="subtitle">Registrati per iniziare a organizzare le tue note con facilità.</p>
 
-        <input type="text" id="newUsername" placeholder="Username" autocomplete="off" />
-        <input type="password" id="newPassword" placeholder="Password" autocomplete="off" />
-        <input type="password" id="confirmPassword" placeholder="Conferma password" autocomplete="off" />
+        <input type="text" id="newUsername" placeholder="Username" required autocomplete="off" />
+        <input type="password" id="newPassword" placeholder="Password" required autocomplete="off" />
+        <input type="password" id="confirmPassword" placeholder="Conferma password" required autocomplete="off" />
 
         <button id="registerBtn" class="primary-btn">Registrati</button>
 
@@ -54,7 +55,6 @@
           Hai già un account?
           <a href="#" id="showLogin">Accedi</a>
         </p>
-
         <p id="msgRegister"></p>
       </div>
 

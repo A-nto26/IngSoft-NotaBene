@@ -12,8 +12,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Repository MapDB per gli utenti registrati.
- * Mantiene uno storage semplice, case-insensitive e thread-safe.
+ * Repository MapDB per la gestione degli utenti (Sprint 4).
+ * - Username normalizzati (trim + lowercase)
+ * - Persistenza sicura in /data/users.db
+ * - Commit atomici
+ * - Costruttore in-memory per i test
+ * - Nessun valore null inserito nel DB
  */
 @Repository
 public class UserRepository {
@@ -50,37 +54,60 @@ public class UserRepository {
     }
 
     // ============================================================
-    // SAVE / UPDATE
+    // UTILITY
     // ============================================================
-    public synchronized void save(Utente utente) {
-        if (utente == null || utente.getUsername() == null)
-            return;
 
-        utenti.put(
-                utente.getUsername().trim().toLowerCase(),
-                utente);
+    /** Normalizza lo username rendendolo case-insensitive. */
+    private String normalize(String username) {
+        return (username == null) ? null : username.trim().toLowerCase();
+    }
 
+    private void commit() {
         db.commit();
     }
 
     // ============================================================
-    // FIND by username (Sprint 3 naming)
+    // SAVE / UPDATE
+    // ============================================================
+    /**
+     * Salva o aggiorna un utente nel database.
+     * Lo username viene SEMPRE normalizzato.
+     */
+    public synchronized void save(Utente utente) {
+
+        if (utente == null)
+            throw new IllegalArgumentException("Utente nullo non consentito");
+
+        if (utente.getUsername() == null || utente.getUsername().isBlank())
+            throw new IllegalArgumentException("Username obbligatorio");
+
+        if (utente.getPasswordHash() == null || utente.getPasswordHash().isBlank())
+            throw new IllegalArgumentException("Hash della password obbligatorio");
+
+        String norm = normalize(utente.getUsername());
+        utente.setUsername(norm);
+
+        utenti.put(norm, utente);
+        commit();
+    }
+
+    // ============================================================
+    // FIND by username
     // ============================================================
     public Utente findByUsername(String username) {
-        if (username == null)
+        String norm = normalize(username);
+        if (norm == null) {
             return null;
-
-        return utenti.get(username.trim().toLowerCase());
+        }
+        return utenti.get(norm);
     }
 
     // ============================================================
     // EXISTS
     // ============================================================
     public boolean exists(String username) {
-        if (username == null)
-            return false;
-
-        return utenti.containsKey(username.trim().toLowerCase());
+        String norm = normalize(username);
+        return norm != null && utenti.containsKey(norm);
     }
 
     // ============================================================

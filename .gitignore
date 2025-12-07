@@ -50,3 +50,10 @@ Desktop.ini
 # Surefire / Test output
 *.txt
 *.xml
+
+#################################
+# DATABASE FILES
+#################################
+*.db
+backend/data/*.db
+backend/*.db

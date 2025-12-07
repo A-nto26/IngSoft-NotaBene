@@ -1,0 +1,70 @@
+/* === COLORE CARTELLA === */
+.cartella-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+#cartella {
+    flex: 1; 
+}
+
+.color-dot {
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: 2px solid #ccc;
+    cursor: pointer;
+    box-shadow: 0 0 4px rgba(0,0,0,0.2);
+    flex-shrink: 0;
+}
+
+.folder-color-dot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  margin-left: 6px;
+  border: 1px solid #ccc;
+}
+
+/* =============================== */
+/*  COLORAZIONE DINAMICA CARTELLE  */
+/* =============================== */
+.folder-icon {
+    width: 30px;
+    height: 30px;
+    vertical-align: middle;
+    flex-shrink: 0;
+    fill: currentColor;
+}
+
+.folder-icon-list {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+    fill: currentColor;
+}
+
+.folder-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+.folder-row.active {
+    color: white; /* migliora il contrasto con cartelle scure */
+}
+
+/* Opacità per il bordo della cartella */
+.folder-stroke-path {
+    opacity: 0.55; 
+}
+
+.pcr-app {
+    z-index: 99999 !important;
+}

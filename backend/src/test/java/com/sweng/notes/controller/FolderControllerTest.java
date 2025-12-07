@@ -102,7 +102,7 @@ class FolderControllerTest {
     }
 
     // ============================================================
-    // GET VISIBLE NOTES FOR USER
+    // GET NOTES IN FOLDER FOR USER (Sprint 4: aggiunti bad request)
     // ============================================================
     @Test
     void testGetNotesInFolderForUser() {
@@ -117,5 +117,23 @@ class FolderControllerTest {
         assertEquals(200, res.getStatusCode().value());
         assertEquals(1, res.getBody().size());
         verify(folderService).getNotesInFolderForUser("casa", "mario");
+    }
+
+    // === NUOVI TEST SPRINT 4 ===
+
+    @Test
+    void testGetNotesInFolderForUser_BadRequest_EmptyFolder() {
+        ResponseEntity<List<Note>> res = controller.getNotesInFolderForUser("", "mario");
+
+        assertEquals(400, res.getStatusCode().value());
+        verify(folderService, never()).getNotesInFolderForUser(any(), any());
+    }
+
+    @Test
+    void testGetNotesInFolderForUser_BadRequest_EmptyUser() {
+        ResponseEntity<List<Note>> res = controller.getNotesInFolderForUser("casa", "");
+
+        assertEquals(400, res.getStatusCode().value());
+        verify(folderService, never()).getNotesInFolderForUser(any(), any());
     }
 }

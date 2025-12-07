@@ -3,7 +3,7 @@ package com.sweng.notes.model;
 import java.io.Serial;
 
 /**
- * Permesso "Lettura":
+ * Permesso "Sola Lettura":
  * - autore + utenti condivisi possono leggere
  * - solo autore può scrivere
  */
@@ -23,6 +23,6 @@ public class Lettura extends Permesso {
 
     @Override
     public boolean puoScrivere() {
-        return false; // gli utenti condivisi NON possono modificare
+        return false;
     }
 }

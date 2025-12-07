@@ -8,7 +8,7 @@ import java.io.Serializable;
  *
  * Le tre implementazioni previste per Sprint 3 sono:
  * - Privata → solo l’autore può leggere e scrivere
- * - Lettura → autore + utenti condivisi possono leggere
+ * - SolaLettura → autore + utenti condivisi possono leggere
  * - Scrittura → autore + utenti condivisi possono leggere e scrivere
  *
  * Il permesso viene impostato SOLO in fase di creazione della nota (regola

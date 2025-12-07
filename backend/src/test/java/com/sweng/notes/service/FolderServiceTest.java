@@ -3,12 +3,13 @@ package com.sweng.notes.service;
 import com.sweng.notes.model.Cartella;
 import com.sweng.notes.model.Note;
 import com.sweng.notes.model.Lettura;
+import com.sweng.notes.model.Scrittura;
 import com.sweng.notes.repository.NoteRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.List;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
@@ -85,6 +86,30 @@ class FolderServiceTest {
         verify(noteRepo, never()).createFolder(any(), any(), any());
     }
 
+    @Test
+    void testCreateFolderDefaultColor() {
+        folderService.createFolder("progetti", null, "luca");
+
+        verify(noteRepo).createFolder("progetti", "luca", "#FFD700");
+    }
+
+    @Test
+    void testCreateFolderNameNormalization() {
+        folderService.createFolder("   LAVORO  ", "#111111", "gigi");
+
+        verify(noteRepo).createFolder("lavoro", "gigi", "#111111");
+    }
+
+    // Cartella duplicata -> repo lancia IllegalArgumentException
+    @Test
+    void testCreateFolderAlreadyExists() {
+        doThrow(new IllegalArgumentException("duplicate"))
+                .when(noteRepo).createFolder("casa", "mario", "#000");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> folderService.createFolder("casa", "#000", "mario"));
+    }
+
     // ============================================================
     // DELETE FOLDER
     // ============================================================
@@ -101,8 +126,9 @@ class FolderServiceTest {
     }
 
     // ============================================================
-    // GET VISIBLE NOTES FOR USER (creator / shared)
+    // GET VISIBLE NOTES FOR USER
     // ============================================================
+
     @Test
     void testGetNotesInFolderForUserCreator() {
         List<Note> mockNotes = List.of(
@@ -118,13 +144,12 @@ class FolderServiceTest {
     }
 
     @Test
-    void testGetNotesInFolderForUserShared() {
+    void testGetNotesInFolderForUserSharedLettura() {
         Note shared = new Note(1, "A", "B", "mario", "casa");
         shared.getUtentiCondivisi().add("anna");
-        shared.setPermesso(new Lettura()); // Utente "anna" può leggere
+        shared.setPermesso(new Lettura());
 
-        when(noteRepo.findByCartella("casa"))
-                .thenReturn(List.of(shared));
+        when(noteRepo.findByCartella("casa")).thenReturn(List.of(shared));
 
         List<Note> result = folderService.getNotesInFolderForUser("casa", "anna");
 
@@ -133,11 +158,35 @@ class FolderServiceTest {
     }
 
     @Test
-    void testGetNotesInFolderForUserEmptyParams() {
-        List<Note> result = folderService.getNotesInFolderForUser(" ", "mario");
-        assertTrue(result.isEmpty());
+    void testGetNotesInFolderForUserSharedScrittura() {
+        Note shared = new Note(1, "A", "B", "mario", "casa");
+        shared.getUtentiCondivisi().add("anna");
+        shared.setPermesso(new Scrittura());
 
-        result = folderService.getNotesInFolderForUser("casa", " ");
+        when(noteRepo.findByCartella("casa")).thenReturn(List.of(shared));
+
+        List<Note> result = folderService.getNotesInFolderForUser("casa", "anna");
+
+        assertEquals(1, result.size());
+        assertEquals("A", result.get(0).getTitolo());
+    }
+
+    @Test
+    void testGetNotesInFolderForUserNoPermission() {
+        Note shared = new Note(1, "A", "B", "mario", "casa");
+        shared.getUtentiCondivisi().add("anna");
+        shared.setPermesso(null); // permesso nullo = privata
+
+        when(noteRepo.findByCartella("casa")).thenReturn(List.of(shared));
+
+        List<Note> result = folderService.getNotesInFolderForUser("casa", "anna");
+
         assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void testGetNotesInFolderForUserEmptyParams() {
+        assertTrue(folderService.getNotesInFolderForUser(" ", "mario").isEmpty());
+        assertTrue(folderService.getNotesInFolderForUser("casa", " ").isEmpty());
     }
 }

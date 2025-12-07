@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cartelle - Note App</title>
+
+  <link rel="stylesheet" href="css/cartelle.css" />
+  <link rel="stylesheet" href="css/folder-icons.css" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600&display=swap" rel="stylesheet">
+</head>
+
+<body>
+  <!-- SPRITE SVG CARTELLE -->
+  <svg style="display:none;">
+      <symbol id="folder-fill" viewBox="0 0 24 24">
+          <path d="M3 6h7l2 2h9v10H3z" fill="currentColor"/>
+      </symbol>
+
+      <symbol id="folder-stroke" viewBox="0 0 24 24">
+          <path d="M3 6h7l2 2h9v10H3z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.5"
+                stroke-linejoin="round"
+                class="folder-stroke-path"/>
+      </symbol>
+  </svg>
+
+  <div id="toastContainer"></div>
+
+  <!-- HEADER -->
+  <header>
+    <h1>
+        <a href="dashboard.html" id="homeLink">
+            📑 LE MIE NOTE
+        </a>
+    </h1>
+
+    <div class="user-info">
+      <p id="welcomeUser"></p>
+      <button id="logoutBtn" class="logout" aria-label="Logout">🚪LOGOUT</button>
+    </div>
+  </header>
+
+  <!-- LAYOUT PRINCIPALE: SIDEBAR + LISTA NOTE -->
+  <div id="pageLayout">
+
+    <!-- SIDEBAR CARTELLE -->
+    <aside id="folderList">
+
+        <!-- 🔍 Ricerca nelle note -->
+        <div class="search-wrapper">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" placeholder="Cerca nelle cartelle... " aria-label="Cerca note" />
+        </div>
+
+        <div class="folders-header">
+            <h2>Cartelle</h2>
+            <button id="newFolderBtn" class="folder-btn">➕ Nuova Cartella</button>
+        </div>
+
+        <ul id="folderItems"></ul>
+
+        <button id="backDashboardBtn" class="back-btn">⬅ Torna alla Dashboard</button>
+
+        </aside>
+
+    <!-- SEZIONE NOTE -->
+    <main>
+      <!-- NESSUN RISULTATO -->
+      <div id="noResults">
+        <div class="no-results">🧐 Nessuna nota trovata</div>
+      </div>
+
+      <!-- NUOVO MESSAGGIO: Nessuna cartella selezionata -->
+      <div id="noFolderSelected" class="empty-message">
+        🗂️ Seleziona una cartella per vedere le note
+      </div>
+
+      <!-- LISTA NOTE -->
+      <section id="noteList"></section>
+    </main>
+  </div>
+
+    <!-- MODALE ANTEPRIMA NOTA -->
+    <div id="previewModal" class="modal">
+    <div class="modal-content" id="previewContent">
+        <h2 id="previewTitolo"></h2>
+        <p id="previewContenuto"></p>
+
+        <div class="modal-actions">
+        <button id="closePreviewBtn" class="cancel-btn">Chiudi</button>
+        </div>
+    </div>
+    </div>
+
+  <!-- SCRIPT -->
+  <script src="js/cartelle.js"></script>
+
+</body>
+</html>
