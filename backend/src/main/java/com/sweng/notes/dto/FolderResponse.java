@@ -1,8 +1,14 @@
 package com.sweng.notes.dto;
 
 /**
- * DTO di risposta contenente informazioni sulle cartelle.
- * Usato nel frontend per mostrare la lista delle cartelle.
+ * DTO di risposta per la rappresentazione delle cartelle lato frontend.
+ * Contiene:
+ * - nome della cartella
+ * - colore associato
+ * - creatore (username)
+ *
+ * Viene usato dal frontend per popolare la lista delle cartelle.
+ * Nessuna logica applicativa: solo trasporto dati.
  */
 public class FolderResponse {
 
@@ -21,7 +27,10 @@ public class FolderResponse {
         this.creatore = creatore != null ? creatore.trim().toLowerCase() : null;
     }
 
-    // ===== Getter =====
+    // ============================================================
+    // GETTER
+    // ============================================================
+
 
     public String getNome() {
         return nome;

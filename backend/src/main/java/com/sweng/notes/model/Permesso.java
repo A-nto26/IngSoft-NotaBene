@@ -4,16 +4,15 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- * Modello astratto per rappresentare il tipo di permesso associato a una nota.
+ * Classe astratta che rappresenta il tipo di permesso associato a una nota.
  *
- * Le tre implementazioni previste per Sprint 3 sono:
- * - Privata → solo l’autore può leggere e scrivere
- * - SolaLettura → autore + utenti condivisi possono leggere
- * - Scrittura → autore + utenti condivisi possono leggere e scrivere
+ * Implementazioni disponibili:
+ *  - Privata      → solo autore può leggere e scrivere
+ *  - Lettura      → autore + utenti condivisi possono leggere
+ *  - Scrittura    → autore + utenti condivisi possono leggere e scrivere
  *
- * Il permesso viene impostato SOLO in fase di creazione della nota (regola
- * Sprint 3)
- * e non può essere cambiato successivamente.
+ * Il permesso viene assegnato esclusivamente in fase di creazione della nota
+ * e non può essere modificato successivamente.
  */
 public abstract class Permesso implements Serializable {
 
@@ -27,6 +26,7 @@ public abstract class Permesso implements Serializable {
         this.tipo = tipo;
     }
 
+    /** Ritorna il nome del permesso. */
     public String getTipo() {
         return tipo;
     }

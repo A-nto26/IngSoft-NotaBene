@@ -4,15 +4,21 @@ import java.util.List;
 
 /**
  * DTO per aggiornare una nota esistente.
+ *
  * Campi modificabili:
  * - titolo
  * - contenuto
  * - cartella
+ * - coloreCartella
  *
- * Non è possibile modificare:
+ * Campi NON modificabili:
  * - creatore
- * - permesso
- * - utenti condivisi (solo via /share)
+ * - permesso (fissato alla creazione)
+ * - utentiCondivisi (gestiti solo tramite /share e /removeSelf)
+ *
+ * versionExpected:
+ *   indica la versione che il frontend si aspetta di modificare.
+ *   Serve per prevenire conflitti di modifica concorrente (Sprint 4, L3-L4).
  */
 public class NoteUpdateRequest {
 
@@ -22,7 +28,7 @@ public class NoteUpdateRequest {
     private List<String> utentiCondivisi;
     private String coloreCartella;
 
-    // Versione attesa dal frontend
+    // Versione attesa dal frontend per controllo conflitti
     private Integer versionExpected;
 
     // ==============================

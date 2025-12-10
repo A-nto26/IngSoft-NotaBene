@@ -11,6 +11,10 @@
   --shadow: rgba(0, 0, 0, 0.15);
 }
 
+* {
+  box-sizing: border-box; 
+}
+
 /* === SFONDO GENERALE === */
 body {
   margin: 0;
@@ -19,8 +23,6 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
-
-  /* 🟧 Sfondo a quadretti come dashboard */
   background-color: #fdfdfc;
   background-image: url("../img/Hot Tropics.jpg");
   background-size: 40px 40px;
@@ -28,7 +30,7 @@ body {
   color: var(--text);
 }
 
-/* === WRAPPER GENERALE === */
+/* === WRAPPER === */
 .auth-wrapper {
   display: flex;
   width: 900px;
@@ -46,7 +48,7 @@ body {
   to { transform: scale(1); opacity: 1; }
 }
 
-/* === COLONNA SINISTRA — IMMAGINE/LOGO === */
+/*  COLONNA SINISTRA — LOGO  */
 .auth-side {
   flex: 1;
   background: linear-gradient(180deg, var(--mint), var(--blue));
@@ -58,36 +60,36 @@ body {
   position: relative;
 }
 
+
 .auth-side::before {
   content: "";
   position: absolute;
   inset: 0;
-  background: rgba(255,255,255,0.1);
-  border-radius: 0 80px 80px 0; /* 🟢 smussa il bordo destro */
-  backdrop-filter: blur(2px);
+  background: rgba(255,255,255,0.05);
+  backdrop-filter: blur(0.5px);
+  border-radius: 0 80px 80px 0;
+  z-index: 1;
 }
+
 
 .logo-container {
   position: relative;
-  text-align: center;
-  z-index: 1;
+  z-index: 10;
 }
 
 .logo {
   width: 240px;
-  height: auto;
-  border-radius: 20px; /* 🔹 smusso immagine */
+  border-radius: 20px;
   box-shadow: 0 6px 14px rgba(0,0,0,0.3);
-  filter: brightness(0.98);
   animation: float 4s ease-in-out infinite;
 }
 
 .logo-container h2 {
-  color: #fff;
+  color: white;
   font-weight: 500;
   margin-top: 1.2rem;
   font-size: 1.2rem;
-  line-height: 1.4rem;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.25);
 }
 
 @keyframes float {
@@ -95,71 +97,116 @@ body {
   50% { transform: translateY(-8px); }
 }
 
-/* === COLONNA DESTRA — FORM LOGIN / REGISTER === */
+/*  COLONNA DESTRA — FORM */
 .auth-form {
   flex: 1;
   background: #fffdf9;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  padding: 3rem;
+  align-items: center; 
+  padding-left: 2rem;
   position: relative;
 }
 
-.auth-form::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  opacity: 0.05;
-  pointer-events: none;
+
+.auth-form h1,
+.auth-form .subtitle,
+.auth-form .switch-text,
+.auth-form #msg,
+.auth-form #msgRegister,
+.input-group,
+.primary-btn {
+  width: 75%;
+  max-width: 380px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 .auth-form h1 {
   font-size: 1.8rem;
   color: var(--orange);
-  margin-bottom: 0.3rem;
-  text-align: center;
+  margin: 0 0 0.5rem 0; 
+  width: 100%;
+}
+
+.form-inner {
+  width: 100%;
+  max-width: 350px; 
+  text-align: center;   
 }
 
 .subtitle {
-  color: #666;
   font-size: 0.9rem;
-  margin-bottom: 1.5rem;
-  text-align: center;
+  color: #777;
+  margin-bottom: 2rem;
+  width: 100%;
+  line-height: 1.4;
 }
 
-/* === INPUT === */
-input {
-  width: 100%;
-  padding: 0.8rem;
-  margin-bottom: 1rem;
+/* INPUT GROUP + FLOATING LABEL */
+.input-group {
+  position: relative;
+  width: 100%; 
+  margin-bottom: 1.5rem;
+}
+
+.input-field {
+  width: 100%; 
+  padding: 1rem 0.8rem 0.4rem;
   border: 2px solid var(--border);
   border-radius: 10px;
   font-size: 1rem;
   background: #fffdfa;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.06);
   transition: all 0.25s ease;
+  height: 54px;
 }
 
-input:focus {
+/* Focus */
+.input-field:focus {
   outline: none;
   border-color: var(--orange);
   box-shadow: 0 0 6px rgba(237, 128, 45, 0.4);
 }
 
-/* === BOTTONI === */
+/* Label fluttuante */
+.input-label {
+  position: absolute;
+  left: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  font-size: 1rem;
+  color: #777;
+  background: #fffdfa;
+  padding: 0 4px;
+  pointer-events: none;
+  transition: all 0.25s ease;
+  line-height: 1;
+}
+
+.input-field:focus + .input-label,
+.input-field:not(:placeholder-shown) + .input-label {
+  top: -10px;
+  font-size: 0.75rem;
+  color: var(--orange);
+  transform: translateY(0);
+  background: #fffdfa;
+}
+
+/*  BOTTONI  */
 .primary-btn {
+ width: 100%; 
   background-color: var(--orange);
   color: white;
   border: 2px solid var(--orange);
-  width: 100%;
   padding: 0.9rem;
   font-size: 1rem;
   font-weight: 600;
   border-radius: 10px;
   cursor: pointer;
-  transition: 0.3s;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.2);
+  transition: 0.25s;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  margin-top: 0.5rem;
 }
 
 .primary-btn:hover {
@@ -168,18 +215,18 @@ input:focus {
   transform: translateY(-2px);
 }
 
-/* === LINK LOGIN / REGISTER === */
+/* LINK LOGIN / REGISTER  */
 .switch-text {
-  margin-top: 1rem;
+  margin-top: 1.5rem;
   font-size: 0.9rem;
-  text-align: center;
-  color: #444;
+  color: #555;
+  width: 100%;
 }
 
 .switch-text a {
   color: var(--orange);
-  text-decoration: none;
   font-weight: 600;
+  text-decoration: none;
 }
 
 .switch-text a:hover {
@@ -192,9 +239,8 @@ input:focus {
 
 /* === MESSAGGI === */
 #msg, #msgRegister {
-  margin-top: 0.8rem;
-  font-size: 0.9rem;
-  text-align: center;
+  color: var(--red);
+  margin-top: 1rem;
 }
 
 /* === RESPONSIVE === */
@@ -207,18 +253,5 @@ input:focus {
 
   .auth-side {
     border-radius: 22px 22px 0 0;
-    padding: 1.5rem;
-  }
-
-  .auth-side::before {
-    border-radius: 22px 22px 0 0;
-  }
-
-  .auth-form {
-    padding: 2rem;
-  }
-
-  .logo {
-    width: 180px;
   }
 }

@@ -1,6 +1,7 @@
 package com.sweng.notes.service;
 
 import com.sweng.notes.dto.*;
+import com.sweng.notes.logging.LoggerActions;
 import com.sweng.notes.model.*;
 import com.sweng.notes.repository.NoteRepository;
 
@@ -13,12 +14,15 @@ import java.util.*;
 
 /**
  * Servizio principale per la gestione delle note.
- * Versione Sprint 4:
- * - Visibilità note (mie + condivise)
- * - Versionamento (salvaVersionePrecedente + restore)
- * - Cartelle + colore cartella
- * - Condivisione con nuove regole (autore aggiunge, utenti rimuovono solo sé stessi)
- * - Lock concorrente completo (timeout, recupero, unlock condizionato)
+ * 
+ * Funzionalità:
+ * - Creazione con permesso iniziale (non modificabile successivamente)
+ * - Visibilità (note proprie + condivise)
+ * - Versionamento (salvataggio automatico + restore)
+ * - Cartelle e colore associato
+ * - Condivisione con regole aggiornate (autore aggiunge; utenti rimossi solo da
+ * sé stessi)
+ * - Lock concorrente completo (acquisizione, refresh, timeout, unlock)
  */
 @Service
 public class NoteService {
@@ -38,7 +42,88 @@ public class NoteService {
     }
 
     // ============================================================
-    // CREATE — UC4
+    // CONVERSIONE NOTE, ATTRAVERSO NOTEVIEW LEGGIAMO LE INFO DELLA NOTA PER IL
+    // FRONTEND
+    // ============================================================
+
+    public NoteView toView(Note note, String currentUser) {
+        if (note == null)
+            return null;
+
+        String normUser = normalize(currentUser);
+
+        NoteView v = new NoteView();
+
+        // campi base
+        v.setId(note.getId());
+        v.setTitolo(note.getTitolo());
+        v.setContenuto(note.getContenuto());
+        v.setCartella(note.getCartella());
+        v.setColoreCartella(note.getColoreCartella());
+        v.setCreatore(note.getCreatore());
+
+        // permesso
+        String perm = "privata";
+        if (note.getPermesso() != null) {
+            perm = note.getPermesso().getTipo().toLowerCase();
+        }
+        v.setPermesso(perm);
+
+        // ruolo utente
+        String ruolo;
+        if (note.getCreatore().equalsIgnoreCase(normUser)) {
+            ruolo = "autore";
+        } else if (note.puoScrivere(normUser)) {
+            ruolo = "scrittura";
+        } else if (note.puoLeggere(normUser)) {
+            ruolo = "lettura";
+        } else {
+            ruolo = "hidden";
+        }
+        v.setRuolo(ruolo);
+
+        // lock owner (serve al frontend)
+        String lockedBy = repo.getEffectiveLockOwner(note.getId()).orElse(null);
+        v.setLockedBy(lockedBy);
+
+        // versione corrente
+        int versioneCorrente = (note.getVersioni() == null)
+                ? 1
+                : note.getVersioni().size() + 1;
+        v.setVersione(versioneCorrente);
+
+        // timestamp
+        v.setCreatedAt(note.getCreatedAt());
+        v.setLastModifiedAt(note.getLastModifiedAt());
+        v.setLastModifiedBy(note.getLastModifiedBy());
+
+        // lista utenti condivisi filtrata
+        List<String> condivisi = new ArrayList<>();
+
+        if (note.getUtentiCondivisi() != null) {
+            for (String u : note.getUtentiCondivisi()) {
+
+                // non aggiungere l'utente corrente
+                if (u.equalsIgnoreCase(normUser))
+                    continue;
+
+                // non aggiungere l'autore
+                if (u.equalsIgnoreCase(note.getCreatore()))
+                    continue;
+
+                condivisi.add(u);
+            }
+        }
+
+        v.setCondivisaCon(condivisi);
+
+        v.setVersioni(note.getVersioni() != null ? new ArrayList<>(note.getVersioni()) : List.of());
+
+        return v;
+    }
+
+    // ============================================================
+    // CREAZIONE
     // ============================================================
     public Note create(CreateNoteRequest req) {
         if (req == null || req.getCreatore() == null) {
@@ -49,7 +134,7 @@ public class NoteService {
         if (creatoreNorm == null || creatoreNorm.isBlank()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Creatore non valido");
         }
-        
+
         // =============== CREAZIONE NOTA ===============
         Note n = new Note();
         n.setTitolo(req.getTitolo());
@@ -66,7 +151,7 @@ public class NoteService {
         n.setLockedBy(null);
         n.setLockedAt(null);
 
-        // Permesso: impostato SOLO in creazione (regola Sprint 4)
+        // Permesso: impostato SOLO in creazione
         Permesso p;
         if ("LETTURA".equalsIgnoreCase(req.getPermesso())) {
             p = new Lettura();
@@ -89,19 +174,22 @@ public class NoteService {
         // Versioni inizialmente vuote
         n.setVersioni(new ArrayList<>());
 
-        // Colore cartella (se presente nel DTO; altrimenti ci pensa il repository)
+        // Colore cartella
         if (req.getColoreCartella() != null && !req.getColoreCartella().isBlank()) {
             n.setColoreCartella(req.getColoreCartella().trim());
         } else {
-            n.setColoreCartella("#ffb347"); 
+            n.setColoreCartella("#ffb347");
         }
 
         repo.save(n);
+        LoggerActions.log("NOTE_CREATE_SUCCESS", creatoreNorm, Map.of(
+            "noteId", n.getId()
+        ));
         return n;
     }
 
     // ============================================================
-    // GET VISIBLE — UC3
+    // GET VISIBLE
     // ============================================================
     public List<Note> getVisibleNotesForUser(String username) {
         return getNotesForUserFiltered(username, true, true);
@@ -113,7 +201,7 @@ public class NoteService {
             boolean condivise) {
 
         String norm = normalize(username);
-        if (norm == null || username.isBlank()) {
+        if (norm == null || norm.isBlank()) {
             throw new IllegalArgumentException("Username non può essere nullo o vuoto");
         }
 
@@ -127,8 +215,8 @@ public class NoteService {
 
         return List.copyOf(result);
     }
-
-    /* ===== PER TEST ===== */
+    
+    /* ===== METODI DI SUPPORTO PER TEST ===== */
     public List<Note> getNotesForUser(String username) {
         return getVisibleNotesForUser(username);
     }
@@ -137,16 +225,22 @@ public class NoteService {
         return repo.findAll();
     }
 
-    public Note getNoteById(int id) {
-        return repo.findById(id);
-    }
-
     public List<Note> getNotesByCartella(String cartella) {
         return repo.findByCartella(cartella);
     }
 
     // ============================================================
-    // UPDATE — UC10 (con lock + versioning + permessi Sprint 4)
+    // Restituisce una singola nota in base al suo ID.
+    // Metodo utilizzato dal Controller per tutte le operazioni applicative
+    // (update, delete, share, restore, duplicate, lock).
+    // ============================================================
+
+    public Note getNoteById(int id) {
+        return repo.findById(id);
+    }
+
+    // ============================================================
+    // UPDATE
     // ============================================================
     public Note update(int id, NoteUpdateRequest req, String username) {
 
@@ -160,16 +254,17 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
         }
 
-        // 1) Permessi: Sprint 4 → chi può scrivere? (autore o utenti con permesso SCRITTURA)
+        // 1) Permessi
         if (!n.puoScrivere(userNorm)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non hai i permessi per modificare questa nota");
         }
 
-        // 2) Lock: usiamo getEffectiveLockOwner del repository (lock attivo e non scaduto)
+        // 2) Lock: usiamo getEffectiveLockOwner del repository (lock attivo e non
+        // scaduto)
         Optional<String> lockOwnerOpt = repo.getEffectiveLockOwner(id);
 
         if (lockOwnerOpt.isEmpty()) {
-            // lock scaduto o inesistente → conflitto 409
+            // lock scaduto o inesistente, conflitto 409
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Lock scaduto. Riapri la nota per continuare.");
         }
 
@@ -177,11 +272,10 @@ public class NoteService {
         if (!lockOwner.equalsIgnoreCase(userNorm)) {
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
-                    "La nota è in modifica da " + lockOwner + "."
-            );
+                    "La nota è in modifica da " + lockOwner + ".");
         }
 
-        // 3) Lock valido → salva versione → aggiorna
+        // 3) Lock valido, salva versione e aggiorna
         n.salvaVersionePrecedente();
 
         if (req.getTitolo() != null && !req.getTitolo().isBlank()) {
@@ -204,17 +298,20 @@ public class NoteService {
         n.setLastModifiedBy(userNorm);
 
         repo.save(n);
+        LoggerActions.log("NOTE_UPDATE_SUCCESS", userNorm, Map.of(
+            "noteId", id
+        ));
         return n;
     }
 
-    /* ===== PER TEST ===== */
+    /* ===== METODO AUSILIARE PER TEST ===== */
     public void save(Note note) {
         if (note != null)
             repo.save(note);
     }
 
     // ============================================================
-    // DELETE — UC12
+    // DELETE
     // ============================================================
     public void delete(int id, String username) {
 
@@ -228,16 +325,17 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
         }
 
-        // Solo l'autore può eliminare
         if (!Objects.equals(n.getCreatore(), userNorm)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
         }
 
         repo.delete(id);
+        LoggerActions.log("NOTE_DELETE_SUCCESS", userNorm, Map.of("noteId", id));
+
     }
 
     // ============================================================
-    // DUPLICATE — UC6
+    // DUPLICAZIONE
     // ============================================================
     public Note duplicate(int id, String username) {
 
@@ -251,7 +349,6 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
         }
 
-        // Sprint 4: può duplicare chi può leggere
         if (!orig.puoLeggere(userNorm)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
         }
@@ -261,10 +358,12 @@ public class NoteService {
                 orig.getTitolo() + " (Copia)",
                 orig.getContenuto(),
                 userNorm,
-                orig.getCartella()
-        );
+                orig.getCartella());
 
-        // Regole Sprint 4: copia PRIVATA, senza condivisioni, versioni vuote
+        // La copia eredita titolo, contenuto e cartella, ma:
+        // - diventa PRIVATA
+        // - non eredita utenti condivisi
+        // - non eredita versioni precedenti
         copia.setPermesso(new Privata());
         copia.setVersioni(new ArrayList<>());
         copia.setUtentiCondivisi(new LinkedHashSet<>());
@@ -274,11 +373,15 @@ public class NoteService {
         copia.setLastModifiedBy(userNorm);
 
         repo.save(copia);
+        LoggerActions.log("NOTE_DUPLICATE_SUCCESS", userNorm, Map.of(
+            "originalId", id,
+            "newId", copia.getId()
+        ));
         return copia;
     }
 
     // ============================================================
-    // REMOVE SELF — UC7
+    // REMOVE SELF
     // ============================================================
     public void removeSelf(int id, String username) {
 
@@ -296,12 +399,12 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Nota non condivisa con questo utente");
         }
 
-        // Il repository implementa la regola "può rimuovere solo sé stesso"
         repo.removeSelf(id, userNorm);
+        LoggerActions.log("NOTE_UNSHARE_SELF", userNorm, Map.of("noteId", id));
     }
 
     // ============================================================
-    // SEARCH — UC8
+    // RICERCA
     // ============================================================
     public List<Note> search(String username, String query) {
 
@@ -330,7 +433,7 @@ public class NoteService {
     }
 
     // ============================================================
-    // SET CARTELLA — UC9
+    // SET CARTELLA
     // ============================================================
     public void setCartella(int id, String nuovoNome, String username) {
 
@@ -344,7 +447,6 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
         }
 
-        // Solo autore può cambiare cartella
         if (!Objects.equals(n.getCreatore(), userNorm)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
         }
@@ -355,10 +457,15 @@ public class NoteService {
         n.setLastModifiedBy(userNorm);
 
         repo.save(n);
+        LoggerActions.log("NOTE_FOLDER_CHANGED", userNorm, Map.of(
+            "noteId", id,
+            "folder", nuovoNome
+        ));
+
     }
 
     // ============================================================
-    // SHARE — UC11
+    // SHARE
     // ============================================================
     public void shareNote(int id, ShareNoteRequest req, String autore) {
 
@@ -380,17 +487,21 @@ public class NoteService {
             return;
         }
 
-        // Regola Sprint 4: il permesso non viene modificato qui
         repo.addUsersToShare(id, new LinkedHashSet<>(req.getUtentiCondivisi()));
+        LoggerActions.log("NOTE_SHARE_ADD_USERS", autoreNorm, Map.of(
+            "noteId", id,
+            "usersAdded", req.getUtentiCondivisi()
+        ));
     }
 
-    /* ===== PER TEST ===== */
+    /* ===== METODO AUSILIARE PER TEST ===== */
     public void addUsersToShare(int id, Set<String> nuovi) {
-        if (nuovi == null || nuovi.isEmpty()) return;
+        if (nuovi == null || nuovi.isEmpty())
+            return;
         repo.addUsersToShare(id, nuovi);
     }
 
-    /* ===== PER TEST ===== */
+    /* ===== METODO AUSILIARE PER TEST ===== */
     public List<Note> getSharedNotes(String username) {
         String norm = normalize(username);
         if (norm == null)
@@ -398,7 +509,7 @@ public class NoteService {
         return repo.findSharedWithUser(norm);
     }
 
-    /* ===== PER TEST ===== */
+    /* ===== METODO AUSILIARE PER TEST ===== */
     public List<Note> getNotesByCreator(String username) {
         String norm = normalize(username);
         if (norm == null)
@@ -407,7 +518,7 @@ public class NoteService {
     }
 
     // ============================================================
-    // RESTORE VERSION — UC5
+    // RESTORE VERSION
     // ============================================================
     public void restoreVersion(int id, int index, String username) {
 
@@ -421,12 +532,10 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Nota non trovata");
         }
 
-        // Autore o utente con permesso SCRITTURA
         if (!Objects.equals(n.getCreatore(), userNorm) && !n.puoScrivere(userNorm)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non autorizzato");
         }
 
-        // Controllo lock: se il lock è di un altro utente ancora valido → 409
         Optional<String> lockOwnerOpt = repo.getEffectiveLockOwner(id);
         if (lockOwnerOpt.isPresent() && !lockOwnerOpt.get().equalsIgnoreCase(userNorm)) {
             throw new ResponseStatusException(
@@ -451,49 +560,74 @@ public class NoteService {
         n.setLastModifiedBy(userNorm);
 
         repo.save(n);
+        LoggerActions.log("NOTE_RESTORE_SUCCESS", userNorm, Map.of(
+            "noteId", id,
+            "versionIndex", index
+        ));
+
     }
 
     // ============================================================
     // LOCKING — API logiche per il controller / frontend
     // ============================================================
 
-    /**
-     * Richiesta lock.
-     * Ritorna:
-     * - "locked": lock confermato (già tuo)
-     * - "already_locked": lock di altro utente ancora valido
-     * - "expired_recovered": lock scaduto, ora recuperato da te
-     * - "not_found": nota inesistente
-     */
     public String lock(int id, String username) {
 
         String userNorm = normalize(username);
         if (userNorm == null || userNorm.isBlank()) {
-            return "error";
+            LoggerActions.log("NOTE_LOCK_ERROR", "system", Map.of(
+            "noteId", id,
+            "reason", "username_non_valido"
+        ));
+            return "error"; // username non valido
         }
 
         Note n = repo.findById(id);
         if (n == null) {
-            return "not_found";
+            LoggerActions.log("NOTE_LOCK_ERROR", userNorm, Map.of(
+            "noteId", id,
+            "reason", "nota_non_trovata"
+        ));
+            return "not_found"; // nota non trovata
         }
 
         Optional<String> ownerOpt = repo.getEffectiveLockOwner(id);
 
-        // Nessun lock attivo o lock scaduto → provo ad acquisirlo
+        // Se non c’è un lock attivo o è scaduto, prova a prenderlo
         if (ownerOpt.isEmpty()) {
-            boolean ok = repo.tryLock(id, userNorm);
-            return ok ? "expired_recovered" : "error";
+        boolean ok = repo.tryLock(id, userNorm);
+
+        if (ok) {
+            LoggerActions.log("NOTE_LOCK_RECOVERED", userNorm, Map.of(
+                "noteId", id
+            ));
+            return "expired_recovered";
+        } else {
+            LoggerActions.log("NOTE_LOCK_ERROR", userNorm, Map.of(
+                "noteId", id,
+                "reason", "acquisizione_fallita"
+            ));
+            return "error";
+        }
         }
 
         String owner = ownerOpt.get();
 
-        // Lock è mio → rinnovo
+        // Se il lock è già dell'utente, rinnova il lock
         if (owner.equalsIgnoreCase(userNorm)) {
             repo.refreshLock(id, userNorm);
+
+            LoggerActions.log("NOTE_LOCK_RENEWED", userNorm, Map.of(
+            "noteId", id
+        ));
             return "locked";
         }
 
-        // Lock di altro utente → bloccato
+        LoggerActions.log("NOTE_LOCKED_BY_OTHER", userNorm, Map.of(
+        "noteId", id,
+        "currentOwner", owner
+        ));
+        // Lock detenuto da un altro utente
         return "already_locked";
     }
 
@@ -512,14 +646,31 @@ public class NoteService {
 
     /** Sblocco volontario. Ritorna "unlocked" o "forbidden". */
     public String unlock(int id, String username) {
-        String userNorm = normalize(username);
-        if (userNorm == null || userNorm.isBlank()) {
-            return "forbidden";
-        }
-
-        boolean unlocked = repo.unlockNote(id, userNorm);
-        return unlocked ? "unlocked" : "forbidden";
+    String userNorm = normalize(username);
+    if (userNorm == null || userNorm.isBlank()) {
+        LoggerActions.log("NOTE_UNLOCK_ERROR", "system", Map.of(
+            "noteId", id,
+            "reason", "username_non_valido"
+        ));
+        return "forbidden";
     }
+
+    boolean unlocked = repo.unlockNote(id, userNorm);
+
+    if (unlocked) {
+        LoggerActions.log("NOTE_UNLOCK_SUCCESS", userNorm, Map.of(
+            "noteId", id
+        ));
+        return "unlocked";
+    }
+
+    LoggerActions.log("NOTE_UNLOCK_FORBIDDEN", userNorm, Map.of(
+        "noteId", id,
+        "reason", "lock_posseduto_da_altro_utente"
+    ));
+    return "forbidden";
+}
+
 
     /** Stato del lock, usato da GET /lock */
     public Map<String, Object> getLockState(int id) {

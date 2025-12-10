@@ -29,9 +29,7 @@
   border: 1px solid #ccc;
 }
 
-/* =============================== */
-/*  COLORAZIONE DINAMICA CARTELLE  */
-/* =============================== */
+/*  COLORAZIONE DINAMICA CARTELLE */
 .folder-icon {
     width: 30px;
     height: 30px;
@@ -57,14 +55,27 @@
 }
 
 .folder-row.active {
-    color: white; /* migliora il contrasto con cartelle scure */
+    color: white; 
 }
 
-/* Opacità per il bordo della cartella */
+
 .folder-stroke-path {
     opacity: 0.55; 
 }
 
 .pcr-app {
     z-index: 99999 !important;
+}
+
+
+.folder-preview {
+    width: 22px !important;
+    height: 22px !important;
+    border-radius: 6px !important;
+    display: inline-block !important;
+    border: 2px solid #ccc !important;
+    box-shadow: 0 0 4px rgba(0,0,0,0.2) !important;
+    background-image: none !important;
+    opacity: 1 !important;
+    pointer-events: none !important;
 }

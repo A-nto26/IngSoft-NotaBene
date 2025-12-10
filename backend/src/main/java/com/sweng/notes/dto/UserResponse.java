@@ -1,9 +1,11 @@
 package com.sweng.notes.dto;
 
 /**
- * Risposta standard per operazioni relative agli utenti:
- * - success: indica esito booleano
- * - message: messaggio leggibile dal frontend
+ * Risposta standard per tutte le operazioni sugli utenti.
+ *
+ * Campi:
+ * - success: esito booleano dell'operazione
+ * - message: messaggio leggibile lato frontend
  * - username: opzionale, sempre normalizzato in lowercase
  */
 public class UserResponse {
@@ -12,21 +14,26 @@ public class UserResponse {
     private String message;
     private String username;
 
+    /** Costruttore vuoto richiesto per Jackson */
     public UserResponse() {
     }
 
+    /** Risposta senza username (es. errori) */
     public UserResponse(boolean success, String message) {
         this.success = success;
         this.message = message;
     }
 
+    /** Risposta completa (es. login riuscito) */
     public UserResponse(boolean success, String message, String username) {
         this.success = success;
         this.message = message;
         setUsername(username);
     }
 
-    // --- GETTERS / SETTERS ---
+    // ============================================================
+    // GETTER / SETTER
+    // ============================================================
 
     public boolean isSuccess() {
         return success;
@@ -48,6 +55,10 @@ public class UserResponse {
         return username;
     }
 
+    /**
+     * L'username viene sempre normalizzato in lowercase,
+     * in modo coerente con UserRequest e UserService.
+     */
     public void setUsername(String username) {
         this.username = (username != null && !username.isBlank())
                 ? username.trim().toLowerCase()

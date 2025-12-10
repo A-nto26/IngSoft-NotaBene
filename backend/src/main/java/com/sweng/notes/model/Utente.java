@@ -4,10 +4,10 @@ import java.io.Serializable;
 
 /**
  * Modello utente semplice e persistente.
- * Sprint 3:
- *  - username sempre normalizzato e case-insensitive
- *  - password salvata solo come hash (BCrypt)
- *  - nessuna logica applicativa qui (demandata a UserService)
+ * Regole :
+ * - username sempre normalizzato (trim + lowercase)
+ * - password salvata solo come hash BCrypt
+ * - nessuna logica applicativa: tutto è gestito da UserService
  */
 public class Utente implements Serializable {
 
@@ -42,6 +42,7 @@ public class Utente implements Serializable {
         return username;
     }
 
+    /** Lo username viene sempre salvato normalizzato */
     public void setUsername(String username) {
         this.username = (username != null)
                 ? username.trim().toLowerCase()
@@ -54,7 +55,7 @@ public class Utente implements Serializable {
 
     /**
      * Imposta l'hash della password.
-     * Attenzione: UserService deve sempre garantire che questo valore sia BCRYPT.
+     * (UserService garantisce che sia sempre un hash BCrypt valido.)
      */
     public void setPasswordHash(String passwordHash) {
         this.passwordHash = (passwordHash != null && !passwordHash.isBlank())

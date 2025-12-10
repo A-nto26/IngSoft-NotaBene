@@ -1,40 +1,37 @@
-// === ELEMENTI ===
+//  CONFIG SEZIONI
 const loginSection = document.getElementById("loginSection");
 const registerSection = document.getElementById("registerSection");
-
+const showRegister = document.getElementById("showRegister");
+const showLogin = document.getElementById("showLogin");
 const msg = document.getElementById("msg");
 const msgRegister = document.getElementById("msgRegister");
 
-// Campi registrazione
-const newUsername     = document.getElementById("newUsername");
-const newPassword     = document.getElementById("newPassword");
-const confirmPassword = document.getElementById("confirmPassword");
-
-// API corrette Sprint 3
+// API aggiornate
 const API_REGISTER = "http://localhost:8080/api/users/register";
 const API_LOGIN    = "http://localhost:8080/api/users/login";
 
 
-// === SWITCH INTERFACCE ===
-document.getElementById("showRegister").addEventListener("click", (e) => {
+//  CAMBIO SEZIONE
+showRegister.addEventListener("click", (e) => {
   e.preventDefault();
   loginSection.classList.add("hidden");
   registerSection.classList.remove("hidden");
 });
 
-document.getElementById("showLogin").addEventListener("click", (e) => {
+showLogin.addEventListener("click", (e) => {
   e.preventDefault();
   registerSection.classList.add("hidden");
   loginSection.classList.remove("hidden");
 });
 
 
-// === REGISTRAZIONE ===
+//  REGISTRAZIONE
 document.getElementById("registerBtn").addEventListener("click", async () => {
-  const username = newUsername.value.trim().toLowerCase();
-  const password = newPassword.value.trim();
-  const confirm  = confirmPassword.value.trim();
+  const username = document.getElementById("newUsername").value.trim();
+  const password = document.getElementById("newPassword").value.trim();
+  const confirm = document.getElementById("confirmPassword").value.trim();
 
+  // --- Validazioni ---
   if (!username || !password || !confirm) {
     msgRegister.textContent = "⚠️ Tutti i campi sono obbligatori.";
     msgRegister.style.color = "#e58500";
@@ -47,6 +44,7 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
     return;
   }
 
+  // --- Invio al backend ---
   try {
     const res = await fetch(API_REGISTER, {
       method: "POST",
@@ -70,16 +68,16 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
       msgRegister.style.color = "#d64d4d";
     }
 
-  } catch {
+  } catch (err) {
     msgRegister.textContent = "❌ Errore di connessione al server.";
     msgRegister.style.color = "#d64d4d";
   }
 });
 
 
-// === LOGIN ===
-document.getElementById("loginBtn").addEventListener("click", async () => {
-  const username = document.getElementById("username").value.trim().toLowerCase();
+// LOGIN
+  document.getElementById("loginBtn").addEventListener("click", async () => {
+  const username = document.getElementById("username").value.trim();
   const password = document.getElementById("password").value.trim();
 
   if (!username || !password) {
@@ -101,17 +99,19 @@ document.getElementById("loginBtn").addEventListener("click", async () => {
       msg.textContent = "✅ Accesso effettuato!";
       msg.style.color = "green";
 
-      // ⭐ Sprint 4: salva username validato dal backend
-      localStorage.setItem("loggedUser", data.username);
+      // Salva solo l'username per l'uso nelle note
+      localStorage.setItem("loggedUser", username);
 
-      setTimeout(() => window.location.href = "dashboard.html", 900);
+      setTimeout(() => {
+        window.location.href = "dashboard.html";
+      }, 800);
 
     } else {
       msg.textContent = `❌ ${data.message || "Credenziali errate."}`;
       msg.style.color = "#d64d4d";
     }
 
-  } catch {
+  } catch (err) {
     msg.textContent = "❌ Errore di connessione al server.";
     msg.style.color = "#d64d4d";
   }

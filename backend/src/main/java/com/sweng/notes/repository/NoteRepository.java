@@ -2,9 +2,11 @@ package com.sweng.notes.repository;
 
 import com.sweng.notes.model.Note;
 import com.sweng.notes.model.Cartella;
-import com.sweng.notes.model.Permesso;
 import com.sweng.notes.model.Privata;
-import com.sweng.notes.model.VersioneNota;
+
+//IMPORT UTILIZZATI DAI METODI COMMENTATI MA MANTENUTI PER COMPLETEZZA
+//import com.sweng.notes.model.VersioneNota;
+//import com.sweng.notes.model.Permesso;
 
 import org.mapdb.*;
 import org.springframework.stereotype.Repository;
@@ -15,8 +17,14 @@ import java.util.*;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Repository MapDB robusto, null-safe e coerente
- * con le nuove regole di condivisione e versionamento.
+ * Repository MapDB per la persistenza delle note.
+ * 
+ * Responsabilità:
+ * - CRUD delle note
+ * - gestione cartelle e colori
+ * - gestione lock
+ * - condivisioni secondo le regole
+ * - compatibilità con versioni precedenti delle note (normalizzazione)
  */
 @Repository
 public class NoteRepository {
@@ -38,11 +46,20 @@ public class NoteRepository {
     @SuppressWarnings("unchecked")
     public NoteRepository() {
 
-        db = DBMaker.fileDB(new File("notes.db"))
+        
+        File dataDir = new File("data");
+        if (!dataDir.exists()) {
+            dataDir.mkdirs();
+        }
+
+        File dbFile = new File(dataDir, "notes.db");
+
+        db = DBMaker.fileDB(dbFile)
                 .fileMmapEnableIfSupported()
                 .transactionEnable()
                 .closeOnJvmShutdown()
                 .make();
+
 
         notes = db.hashMap("notes", Serializer.INTEGER, Serializer.JAVA)
                 .createOrOpen();
@@ -56,7 +73,16 @@ public class NoteRepository {
     }
 
     /**
-     * Normalizza eventuali note vecchie (retrocompatibilità)
+     * Normalizza eventuali note già presenti nel DB.
+     * Garantisce che ogni nota abbia:
+     * - lista versioni non nulla
+     * - set utentiCondivisi non nullo
+     * - permesso valido(Privata)
+     * - createdAt valorizzato
+     * - campi lock inizializzati
+     * - colore cartella assegnato
+     * 
+     * Necessario per retrocompatibilità
      */
     private void normalizzaNote() {
         for (Note n : notes.values()) {
@@ -86,11 +112,12 @@ public class NoteRepository {
     }
 
     // ============================================================
-    // COSTRUTTORE PER I TEST (Sprint 4)
+    // COSTRUTTORE ALTERNATIVO PER TEST (DB IN-MEMORY)
+    // EVITA LA CREAZIONE DI FILE SU DISCO DURANTE I TEST DI UNITà
     // ============================================================
     public NoteRepository(DB testDb,
-                        ConcurrentMap<Integer, Note> testNotes,
-                        ConcurrentMap<String, Cartella> testFolders) {
+            ConcurrentMap<Integer, Note> testNotes,
+            ConcurrentMap<String, Cartella> testFolders) {
 
         this.db = testDb;
         this.notes = testNotes;
@@ -100,7 +127,7 @@ public class NoteRepository {
                 ? 1
                 : Collections.max(notes.keySet()) + 1;
 
-        normalizzaNote(); // Riusa la logica del repository reale
+        normalizzaNote();
     }
 
     // ============================================================
@@ -116,7 +143,7 @@ public class NoteRepository {
     }
 
     // ============================================================
-    // NOTE — CRUD
+    // CRUD COMPLETO PER LE NOTE (RICERCA, SALVATAGGIO, ELIMINAZIONE)
     // ============================================================
 
     public synchronized List<Note> findAll() {
@@ -129,6 +156,12 @@ public class NoteRepository {
         return notes.get(id);
     }
 
+    /**
+     * Salva o aggiorna una nota.
+     * - Assegna un ID se nuova
+     * - Garantisce che tutti i campi essenziali siamo valorizzati
+     * - Aggiorna la cartella associata e sincronizza il colore
+     */
     public synchronized void save(Note note) {
         boolean nuova = note.getId() == 0;
 
@@ -158,40 +191,70 @@ public class NoteRepository {
         commit();
     }
 
+    /*
+     * METODI NON PIù USATI, RIMANGONO PER COMPLETEZZA
+     * 
+     * // ============================================================
+     * // VERSIONAMENTO — RESTORE VERSION (Sprint 4)
+     * // ============================================================
+     * public synchronized void restoreVersion(int id, int index, String username) {
+     * 
+     * Note n = notes.get(id);
+     * if (n == null)
+     * return;
+     * 
+     * List<VersioneNota> versioni = n.getVersioni();
+     * if (versioni == null || index < 0 || index >= versioni.size())
+     * return;
+     * 
+     * VersioneNota v = versioni.get(index);
+     * 
+     * // Salva versione corrente come versione precedente
+     * n.salvaVersionePrecedente();
+     * 
+     * // Applica i dati della versione
+     * n.setTitolo(v.getTitolo());
+     * n.setContenuto(v.getContenuto());
+     * n.setLastModifiedAt(LocalDateTime.now());
+     * n.setLastModifiedBy(username);
+     * 
+     * notes.put(id, n);
+     * commit();
+     * }
+     * 
+     * 
+     * // Condivisione iniziale alla creazione della nota.
+     * // (Il permesso non viene più modificato qui.)
+     * 
+     * public synchronized void shareNoteWithUsers(int id, Set<String> utenti,
+     * Permesso permesso) {
+     * if (utenti == null || utenti.isEmpty())
+     * return;
+     * 
+     * Note n = notes.get(id);
+     * if (n == null)
+     * return;
+     * 
+     * Set<String> condivisi = n.getUtentiCondivisi();
+     * if (condivisi == null) {
+     * condivisi = new LinkedHashSet<>();
+     * }
+     * 
+     * condivisi.addAll(utenti);
+     * n.setUtentiCondivisi(condivisi);
+     * 
+     * notes.put(id, n);
+     * commit();
+     * }
+     * 
+     */
+
     // ============================================================
-    // VERSIONAMENTO — RESTORE VERSION (Sprint 4)
-    // ============================================================
-    public synchronized void restoreVersion(int id, int index, String username) {
-
-        Note n = notes.get(id);
-        if (n == null)
-            return;
-
-        List<VersioneNota> versioni = n.getVersioni();
-        if (versioni == null || index < 0 || index >= versioni.size())
-            return;
-
-        VersioneNota v = versioni.get(index);
-
-        // Salva versione corrente come versione precedente
-        n.salvaVersionePrecedente();
-
-        // Applica i dati della versione
-        n.setTitolo(v.getTitolo());
-        n.setContenuto(v.getContenuto());
-        n.setLastModifiedAt(LocalDateTime.now());
-        n.setLastModifiedBy(username);
-
-        notes.put(id, n);
-        commit();
-    }
-
-    // ============================================================
-    // CARTELLE — LOGICA COMPLETA SPRINT 4
+    // CARTELLE
     // ============================================================
 
     private void aggiornaCartella(Note n) {
-        // 1. La nota NON ha una cartella → niente da fare
+        // 1. La nota NON ha una cartella → nessuna operazione
         if (n.getCartella() == null || n.getCartella().isBlank()) {
             return;
         }
@@ -202,7 +265,6 @@ public class NoteRepository {
         Cartella c = folders.get(key);
 
         if (c == null) {
-            // La nota ha un colore? → usalo
             String coloreCartella = (n.getColoreCartella() != null && !n.getColoreCartella().isBlank())
                     ? n.getColoreCartella()
                     : "#FFD700";
@@ -253,21 +315,15 @@ public class NoteRepository {
     }
 
     // ============================================================
-    // GESTIONE LOCK NOTE — VERSIONE COMPLETA
+    // LOCKING - IMPLEMENTAZIONE LATO REPOSITORY
     // ============================================================
 
-    /**
-     * Prova a prendere il lock sulla nota.
-     * Ritorna:
-     * - true → lock acquisito
-     * - false → lock detenuto da altro utente e ancora valido
-     */
     public synchronized boolean tryLock(int id, String username) {
         Note n = notes.get(id);
         if (n == null)
             return false;
 
-        // Se non c'è un lock attivo → lo prende subito
+        // Se non c'è un lock attivo, acquisisce lock
         if (!n.hasActiveLock()) {
             n.acquireLock(username);
             notes.put(id, n);
@@ -275,7 +331,7 @@ public class NoteRepository {
             return true;
         }
 
-        // Se il lock è scaduto → può "rubarlo"
+        // Se il lock è scaduto, acquisisce lock
         if (n.isLockExpired(LOCK_TIMEOUT_MINUTES)) {
             n.acquireLock(username);
             notes.put(id, n);
@@ -283,9 +339,9 @@ public class NoteRepository {
             return true;
         }
 
-        // Se il lock è suo → rinnova e OK
+        // Se il lock è suo, rinnova e OK
         if (n.isLockedBy(username)) {
-            n.acquireLock(username); // aggiorna lockedAt
+            n.acquireLock(username);
             notes.put(id, n);
             commit();
             return true;
@@ -297,7 +353,7 @@ public class NoteRepository {
 
     /**
      * Rinnova un lock già posseduto dallo stesso utente.
-     * Se non è suo → nessun effetto.
+     * Se non è suo, nessuna azione
      */
     public synchronized void refreshLock(int id, String username) {
         Note n = notes.get(id);
@@ -333,7 +389,7 @@ public class NoteRepository {
 
     /**
      * Restituisce il proprietario del lock SE e solo SE il lock è ancora valido.
-     * Se il lock è scaduto → lo rimuove e ritorna Optional.empty().
+     * Se il lock è scaduto: lo rimuove e ritorna Optional.empty().
      */
     public synchronized Optional<String> getEffectiveLockOwner(int id) {
         Note n = notes.get(id);
@@ -373,7 +429,7 @@ public class NoteRepository {
 
         Note after = notes.get(id);
 
-        // se lockedBy è null → sbloccata correttamente
+        // se lockedBy è null, sbloccata correttamente
         return after.getLockedBy() == null;
     }
 
@@ -398,7 +454,7 @@ public class NoteRepository {
             return out;
         }
 
-        // lock non esiste o scaduto → rimuovi
+        // lock non esiste o scaduto, rimuovi
         if (!n.hasActiveLock() || n.isLockExpired(LOCK_TIMEOUT_MINUTES)) {
             n.clearLock();
             notes.put(id, n);
@@ -414,15 +470,15 @@ public class NoteRepository {
     }
 
     // ============================================================
-    // CONDIVISIONE — REGOLE SPRINT 4
+    // CONDIVISIONE
     // ============================================================
 
     /**
      * Aggiunge utenti alla condivisione (solo aggiunta)
-     * — Usata dall’autore quando modifica la nota.
+     * 
      */
     public synchronized void addUsersToShare(int id, Set<String> nuoviUtenti) {
-       
+
         if (nuoviUtenti == null || nuoviUtenti.isEmpty())
             return;
 
@@ -443,7 +499,7 @@ public class NoteRepository {
     }
 
     /**
-     * L’utente condiviso può rimuovere solo sé stesso
+     * Rimozione autonoma dalla condivisione
      */
     public synchronized void removeSelf(int id, String username) {
         Note n = notes.get(id);
@@ -455,30 +511,6 @@ public class NoteRepository {
             condivisi.remove(username);
             n.setUtentiCondivisi(condivisi);
         }
-
-        notes.put(id, n);
-        commit();
-    }
-
-    /**
-     * Condivisione iniziale alla creazione della nota.
-     * (Il permesso non viene più modificato qui.)
-     */
-    public synchronized void shareNoteWithUsers(int id, Set<String> utenti, Permesso permesso) {
-        if (utenti == null || utenti.isEmpty())
-            return;
-
-        Note n = notes.get(id);
-        if (n == null)
-            return;
-
-        Set<String> condivisi = n.getUtentiCondivisi();
-        if (condivisi == null) {
-            condivisi = new LinkedHashSet<>();
-        }
-
-        condivisi.addAll(utenti);
-        n.setUtentiCondivisi(condivisi);
 
         notes.put(id, n);
         commit();
@@ -517,7 +549,7 @@ public class NoteRepository {
     }
 
     // ============================================================
-    // CARTELLE - API SPRINT 4
+    // CARTELLE
     // ============================================================
 
     public synchronized void createFolder(String nome, String creatore, String colore) {

@@ -1,11 +1,11 @@
 // =====================================
 // SYSTEM LOCK – modulo indipendente
 // =====================================
+
 let lockActive = false;
 let lockCountdown = null;
 
-// countdown
-let lockSeconds = 180; // 3 minuti
+let lockSeconds = 180; // 3 minuti iniziali
 let lockConfirmTimeout = null;
 
 // tracking
@@ -16,12 +16,14 @@ let currentLockToast = null;
 // snapshot iniziale per evitare salvataggi inutili
 let initialSnapshot = null;
 
+
 // =====================================
 // INIT
 // =====================================
 function initLockSystem(user) {
     currentUser = user;
 }
+
 
 // =====================================
 // API CALLS
@@ -58,6 +60,7 @@ async function apiRefresh(noteId) {
     });
 }
 
+
 // =====================================
 // START LOCK
 // =====================================
@@ -66,12 +69,13 @@ async function startLock(noteId) {
     const lock = await apiLock(noteId);
     if (!lock.ok) return false;
 
+    // snapshot iniziale per capire se la nota è cambiata
     initialSnapshot = {
-    titolo: document.getElementById("titolo")?.value || "",
-    contenuto: document.getElementById("contenuto")?.value || "",
-    cartella: document.getElementById("cartella")?.value || "",
-    colore: document.getElementById("folderColorInput")?.value || ""
-};
+        titolo: document.getElementById("titolo")?.value || "",
+        contenuto: document.getElementById("contenuto")?.value || "",
+        cartella: document.getElementById("cartella")?.value || "",
+        colore: document.getElementById("folderColorInput")?.value || ""
+    };
 
     lockActive = true;
     currentLockedNoteId = noteId;
@@ -81,12 +85,12 @@ async function startLock(noteId) {
     return true;
 }
 
+
 // =====================================
-// COUNTDOWN
+// COUNTDOWN 
 // =====================================
 function startCountdown(noteId) {
-    lockSeconds = 180; 
-
+    
     clearInterval(lockCountdown);
 
     lockCountdown = setInterval(() => {
@@ -100,12 +104,13 @@ function startCountdown(noteId) {
     }, 1000);
 }
 
+
 // =====================================
-// ASK STILL EDITING
+// ASK STILL EDITING → popup SI/NO
 // =====================================
 function askStillEditing(noteId) {
 
-    // Chiudi eventuale vecchio toast
+    // Chiudi eventuale toast precedente
     if (currentLockToast) {
         currentLockToast.remove();
         currentLockToast = null;
@@ -114,7 +119,7 @@ function askStillEditing(noteId) {
     currentLockToast = showConfirmToast(
         "⏳ Stai ancora modificando la nota?",
         async () => {
-            // utente ha cliccato SI
+            // === UTENTE CLICCA "SI" ===
             if (currentLockToast) {
                 currentLockToast.remove();
                 currentLockToast = null;
@@ -122,13 +127,16 @@ function askStillEditing(noteId) {
 
             await apiRefresh(noteId);
 
-            // estendi lock: +5 minuti → 300 secondi
+            // rinnovo lock, 5 minuti
             lockSeconds = 300;
+
             clearTimeout(lockConfirmTimeout);
+            lockConfirmTimeout = null;
+
             startCountdown(noteId);
         },
         async () => {
-            // utente clicca NO
+            // === UTENTE CLICCA "NO" ===
             clearTimeout(lockConfirmTimeout);
             if (currentLockToast) {
                 currentLockToast.remove();
@@ -138,7 +146,7 @@ function askStillEditing(noteId) {
         }
     );
 
-    // Timeout di 2 minuti se l’utente NON risponde
+    // Timeout 2 minuti se non risponde
     lockConfirmTimeout = setTimeout(async () => {
 
         if (currentLockToast) {
@@ -146,17 +154,19 @@ function askStillEditing(noteId) {
             currentLockToast = null;
         }
 
-        // 2. Rimuovi QUALSIASI altro toast di conferma eventualmente rimasto
+        // rimuove eventuali residui di toast
         document.querySelectorAll(".toast-confirm").forEach(t => t.remove());
 
-        // 3. Procedi con l'auto-save
+        // procede con autosave
         await autoSaveAndExit(noteId);
 
     }, 120000);
 }
 
+
+
 // =====================================
-// AUTOSAVE + EXIT
+// AUTOSAVE + EXIT + VERSION EXPECTED
 // =====================================
 async function autoSaveAndExit(noteId) {
 
@@ -165,7 +175,7 @@ async function autoSaveAndExit(noteId) {
     const cartella = document.getElementById("cartella")?.value.trim() || "";
     const coloreCartella = document.getElementById("folderColorInput")?.value || "#ffb347";
 
-    // Controlla se ci sono state modifiche
+    // controlla se la nota è cambiata
     const hasChanged =
         titolo !== initialSnapshot.titolo ||
         contenuto !== initialSnapshot.contenuto ||
@@ -177,16 +187,23 @@ async function autoSaveAndExit(noteId) {
             titolo,
             contenuto,
             cartella: cartella || null,
-            coloreCartella
+            coloreCartella,
+
+            // controllo di versione
+            versionExpected: window._versionLoadedAtOpen?.[noteId] ?? null
         };
 
-        await fetch(`${API_NOTES}/${noteId}?user=${encodeURIComponent(currentUser)}`, {
+        const res = await fetch(`${API_NOTES}/${noteId}?user=${encodeURIComponent(currentUser)}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(body)
         });
 
-        showToast("info", "💾 Salvataggio automatico effettuato.");
+        if (res.ok) {
+            showToast("info", "💾 Salvataggio automatico effettuato.");
+        } else if (res.status === 409) {
+            showToast("error", "⚠️ Conflitto: la nota è stata aggiornata da un altro utente. Non posso sovrascrivere.");
+        }
     }
 
     await apiUnlock(noteId);
@@ -195,6 +212,8 @@ async function autoSaveAndExit(noteId) {
     chiudiModal("noteModal");
     await caricaNote();
 }
+
+
 
 // =====================================
 // STOP LOCK
@@ -210,7 +229,7 @@ function stopLock() {
     lockConfirmTimeout = null;
 
     if (currentLockToast) {
-    currentLockToast.remove();
-    currentLockToast = null;
+        currentLockToast.remove();
+        currentLockToast = null;
     }
 }

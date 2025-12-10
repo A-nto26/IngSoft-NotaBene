@@ -34,6 +34,10 @@ public class VersioneNota implements Serializable {
         this.timestamp = timestamp;
     }
 
+    // ============================================================
+    // GETTER / SETTER
+    // ============================================================
+
     public String getTitolo() {
         return titolo;
     }

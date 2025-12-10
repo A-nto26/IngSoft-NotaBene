@@ -8,12 +8,12 @@ import java.util.Set;
 
 /**
  * Modello dati per una cartella persistente.
- * Ogni cartella contiene:
- * - nome
- * - creatore
- * - colore (per UI)
- * - createdAt (timestamp immutabile)
- * - insieme degli ID delle note appartenenti
+ * Una cartella contiene:
+ *  - nome (univoco, normalizzato dal Repository)
+ *  - creatore (utente che l’ha creata)
+ *  - colore (usato dal frontend)
+ *  - createdAt (timestamp immutabile)
+ *  - insieme degli ID delle note contenute
  */
 public class Cartella implements Serializable {
 
@@ -25,7 +25,7 @@ public class Cartella implements Serializable {
     private String colore;
     private LocalDateTime createdAt;
 
-    /** Insieme ordinato degli ID delle note */
+    /** Insieme degli ID delle note, senza duplicati e ordinati in inserimento */
     private Set<Integer> noteIds = new LinkedHashSet<>();
 
     // ============================================================
@@ -90,7 +90,7 @@ public class Cartella implements Serializable {
     }
 
     // ============================================================
-    // OPERAZIONI NOTE
+    // OPERAZIONI SUL CONTENUTO DELLA CARTELLA 
     // ============================================================
 
     /** Aggiunge una nota alla cartella */

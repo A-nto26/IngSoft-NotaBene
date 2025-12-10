@@ -10,8 +10,12 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Controller REST per la gestione delle cartelle persistenti.
- * Permette di creare, leggere, eliminare e visualizzare note per cartella.
+ * Controller REST per la gestione delle cartelle.
+ * Funzionalità:
+ * - creazione cartella,
+ * - lettura cartelle,
+ * - eliminazione cartella
+ * - visualizzare note all'interno di una cartella per utente.
  */
 @RestController
 @RequestMapping("/api/folders")
@@ -31,7 +35,7 @@ public class FolderController {
     }
 
     // ============================================================
-    // LETTURA
+    // GET - LETTURA CARTELLE
     // ============================================================
 
     /** Restituisce tutte le cartelle persistenti */
@@ -41,15 +45,20 @@ public class FolderController {
         return ResponseEntity.ok(folders);
     }
 
-    /** Restituisce tutte le note contenute in una cartella */
-    @GetMapping("/{nome}")
-    public ResponseEntity<List<Note>> getNotesInFolder(@PathVariable String nome) {
-        List<Note> notes = folderService.getNotesInFolder(nome);
-        return ResponseEntity.ok(notes);
-    }
+    /*
+     * NON USATO MANTENUTO PER COMPLETEZZA - Restituisce tutte le note contenute in
+     * una cartella
+     * 
+     * @GetMapping("/{nome}")
+     * public ResponseEntity<List<Note>> getNotesInFolder(@PathVariable String nome)
+     * {
+     * List<Note> notes = folderService.getNotesInFolder(nome);
+     * return ResponseEntity.ok(notes);
+     * }
+     */
 
     // ============================================================
-    // CREAZIONE
+    // POST - CREAZIONE CARTELLA
     // ============================================================
 
     /** Crea una nuova cartella persistente con colore e autore */
@@ -76,7 +85,7 @@ public class FolderController {
     }
 
     // ============================================================
-    // ELIMINAZIONE
+    // DELETE - ELIMINAZIONE CARTELLA
     // ============================================================
 
     /** Elimina una cartella esistente */
@@ -87,10 +96,13 @@ public class FolderController {
     }
 
     // ============================================================
-    // NOTE VISIBILI PER UTENTE
+    // GET - NOTE VISIBILI PER UTENTE
     // ============================================================
 
-    /** Restituisce tutte le note (proprie o condivise) visibili per un utente */
+    /**
+     * Restituisce tutte le note visibili (proprie o condivise)
+     * per un utente all'interno di una cartella
+     */
     @GetMapping("/{nome}/user/{username}")
     public ResponseEntity<List<Note>> getNotesInFolderForUser(
             @PathVariable String nome,
