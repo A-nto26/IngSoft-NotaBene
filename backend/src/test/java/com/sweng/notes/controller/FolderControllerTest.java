@@ -43,8 +43,10 @@ class FolderControllerTest {
         verify(folderService, times(1)).getAllFolders();
     }
 
+ /*
     // ============================================================
-    // GET NOTES IN FOLDER
+    // GET NOTES IN FOLDER (endpoint non piu attivo)
+    // manteniamo per completezza
     // ============================================================
     @Test
     void testGetNotesInFolder() {
@@ -59,7 +61,7 @@ class FolderControllerTest {
         assertEquals(200, res.getStatusCode().value());
         assertEquals(2, res.getBody().size());
     }
-
+*/
     // ============================================================
     // CREATE FOLDER
     // ============================================================

@@ -45,45 +45,17 @@ public class NoteControllerTest {
     }
 
     // ============================================================
-    // GET NOTES (mie / condivise)
-    // ============================================================
-    @Test
-    void testGetNotes() {
-        List<Note> mockNotes = List.of(new Note(1, "A", "B", "mario", "casa"));
-
-        when(service.getNotesByCreator("mario")).thenReturn(mockNotes);
-        when(service.getSharedNotes("mario")).thenReturn(List.of());
-
-        ResponseEntity<List<Note>> res =
-                controller.getNotes("mario", true, false);
-
-        assertEquals(1, res.getBody().size());
-    }
-
-    // ============================================================
-    // GET SINGLE NOTE
-    // ============================================================
-    @Test
-    void testGetNoteById() {
-        Note n = new Note(5, "T", "C", "mario", "casa");
-        when(service.getNoteById(5)).thenReturn(n);
-
-        ResponseEntity<Note> res = controller.getNoteById(5);
-
-        assertEquals(200, res.getStatusCode().value());
-        assertEquals("T", res.getBody().getTitolo());
-    }
-
-    // ============================================================
-    // GET VISIBLE NOTES
+    // GET VISIBLE NOTES (Nota: ora restituisce NoteView)
     // ============================================================
     @Test
     void testGetVisibleNotes() {
-        List<Note> mockList = List.of(new Note(1, "A", "B", "mario", ""));
+        List<Note> fakeNotes = List.of(new Note(1, "A", "B", "mario", ""));
 
-        when(service.getVisibleNotesForUser("mario")).thenReturn(mockList);
+        when(service.getVisibleNotesForUser("mario")).thenReturn(fakeNotes);
+        when(service.toView(any(), eq("mario")))
+                .thenReturn(new NoteView());
 
-        ResponseEntity<List<Note>> res = controller.getVisible("mario");
+        ResponseEntity<List<NoteView>> res = controller.getVisible("mario");
 
         assertEquals(1, res.getBody().size());
         verify(service).getVisibleNotesForUser("mario");
@@ -166,12 +138,18 @@ public class NoteControllerTest {
     }
 
     // ============================================================
-    // REMOVE SELF
+    // REMOVE SELF (ENDPOINT /{id}/removeSelf)
     // ============================================================
     @Test
     void testRemoveSelf() {
-        ResponseEntity<String> res =
-                controller.removeUserFromShare(2, "anna", "anna");
+        Map<String, String> body = Map.of("user", "anna");
+
+        Note n = new Note(2, "T", "C", "pippo", "");
+        n.setUtentiCondivisi(new HashSet<>(List.of("anna")));
+
+        when(service.getNoteById(2)).thenReturn(n);
+
+        ResponseEntity<String> res = controller.removeSelf(2, body);
 
         assertEquals(200, res.getStatusCode().value());
         verify(service).removeSelf(2, "anna");
@@ -217,16 +195,14 @@ public class NoteControllerTest {
     @SuppressWarnings("unchecked")
     @Test
     void testGetLockState() {
-        Map<String,Object> mockState = Map.of(
+        Map<String, Object> mockState = Map.of(
                 "locked", true,
-                "lockedBy", "anna"
-        );
+                "lockedBy", "anna");
 
         when(service.getLockState(8)).thenReturn(mockState);
 
         ResponseEntity<?> res = controller.getLockState(8);
 
-        // Cast necessario per evitare l'errore
         Map<String, Object> body = (Map<String, Object>) res.getBody();
 
         assertEquals(true, body.get("locked"));

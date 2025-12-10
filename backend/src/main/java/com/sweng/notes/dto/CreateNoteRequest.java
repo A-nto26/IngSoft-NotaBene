@@ -3,26 +3,31 @@ package com.sweng.notes.dto;
 import java.util.List;
 
 /**
- * DTO per la creazione di una nuova nota (Sprint 3).
- * Campi:
+ * DTO utilizzato per la creazione di una nuova nota.
+ *
+ * Contiene esclusivamente i dati inviati dal frontend:
  * - titolo, contenuto: testo della nota
- * - creatore: obbligatorio (username dell'autore)
- * - cartella: opzionale
- * - permesso: PRIVATA | LETTURA | SCRITTURA
- * - utentiCondivisi: opzionale, solo aggiunte iniziali
+ * - creatore: username dell’autore (obbligatorio)
+ * - cartella: nome della cartella scelta (opzionale)
+ * - permesso: PRIVATA | LETTURA | SCRITTURA (impostato solo in creazione)
+ * - utentiCondivisi: elenco opzionale di utenti inizialmente aggiunti
+ * - coloreCartella: colore selezionato dal frontend (opzionale)
  */
+
 public class CreateNoteRequest {
 
     private String titolo;
     private String contenuto;
-    private String creatore; 
-    private String cartella; 
-    private String permesso; 
-    private List<String> utentiCondivisi; 
-    private String coloreCartella; 
+    private String creatore;
+    private String cartella;
+    private String permesso;
+    private List<String> condivisaCon;
+    private List<String> utentiCondivisi;
+    private String coloreCartella;
 
-    // ===== GETTER & SETTER =====
-
+    // ===========================================
+    // GETTER & SETTER
+    // ===========================================
     public String getTitolo() {
         return titolo;
     }
@@ -78,4 +83,13 @@ public class CreateNoteRequest {
     public void setColoreCartella(String coloreCartella) {
         this.coloreCartella = coloreCartella;
     }
+
+    public List<String> getCondivisaCon() {
+        return condivisaCon;
+    }
+
+    public void setCondivisaCon(List<String> condivisaCon) {
+        this.condivisaCon = condivisaCon;
+    }
+
 }

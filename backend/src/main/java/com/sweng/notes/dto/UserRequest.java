@@ -1,27 +1,32 @@
 package com.sweng.notes.dto;
 
 /**
- * DTO per richieste relative all'utente:
- * - registrazione
+ * DTO utilizzato per:
+ * - registrazione utente
  * - login
  *
- * username: normalizzato in lowercase
- * password: mantenuta esattamente come inviata (tranne trim)
+ * Regole:
+ * - username: normalizzato in lowercase (case-insensitive)
+ * - password: mantenuta così com'è, salvo trim (NO lowercase)
  */
 public class UserRequest {
 
     private String username;
     private String password;
 
+    /** Costruttore vuoto richiesto da Jackson */
     public UserRequest() {
     }
 
+    /** Costruttore completo */
     public UserRequest(String username, String password) {
         setUsername(username);
         setPassword(password);
     }
 
-    // --- GETTERS / SETTERS ---
+    // ============================================================
+    // GETTER / SETTER
+    // ============================================================
 
     public String getUsername() {
         return username;

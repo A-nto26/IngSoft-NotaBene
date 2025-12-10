@@ -4,8 +4,9 @@ import java.io.Serial;
 
 /**
  * Permesso "Sola Lettura":
- * - autore + utenti condivisi possono leggere
- * - solo autore può scrivere
+ * Regole:
+ *  - Tutti gli utenti con cui la nota è condivisa possono leggere.
+ *  - Solo l’autore può scrivere.
  */
 public class Lettura extends Permesso {
 

@@ -585,3 +585,29 @@ main {
     color: var(--red);
     font-weight: 600;
 }
+
+/* ============================================================
+   BADGE VERSIONE — COLORI COME IN DASHBOARD
+   ============================================================ */
+
+/* Privata → rosso */
+.version-badge-private {
+    background: var(--red) !important;
+}
+
+/* Lettura → blu */
+.version-badge-read {
+    background: var(--blue) !important;
+}
+
+/* Scrittura → verde */
+.version-badge-write {
+    background: var(--green) !important;
+}
+
+/* Mantieni la forma esagonale del badge folder */
+.version-badge-folder {
+    clip-path: polygon(0 0, 100% 0, 100% 75%, 50% 100%, 0 75%);
+    font-family: "Courier New", monospace;
+    text-transform: uppercase;
+}

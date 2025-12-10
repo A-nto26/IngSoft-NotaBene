@@ -12,12 +12,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 
 /**
- * Repository MapDB per la gestione degli utenti (Sprint 4).
- * - Username normalizzati (trim + lowercase)
- * - Persistenza sicura in /data/users.db
- * - Commit atomici
- * - Costruttore in-memory per i test
- * - Nessun valore null inserito nel DB
+ * Repository MapDB per la gestione degli utenti.
+ * 
+ * Responsabilità:
+ * - Salvataggio e aggiornamento utenti
+ * - Normalizzazione case-insensitive dello username
+ * - Query per username e snapshot di tutti gli utenti
+ * - Supporto a DB reale (file) e DB in-memory per i test
+ *
  */
 @Repository
 public class UserRepository {
@@ -45,19 +47,19 @@ public class UserRepository {
     }
 
     /**
-     * Costruttore IN-MEMORY per i test, evita cast non sicuri.
+     * Costruttore alternativo per i test.
+     * Utilizza una mappa in-memory invece di un file fisico,
+     * permettendo test unitari più veloci e senza effetti collaterali.
      */
     public UserRepository(DB db, Map<String, Utente> usersMap) {
         this.db = db;
         this.utenti = new ConcurrentHashMap<>(usersMap);
-        this.db.commit();
+
     }
 
     // ============================================================
-    // UTILITY
+    // UTILITY - NORMALIZZAZIONE E COMMIT
     // ============================================================
-
-    /** Normalizza lo username rendendolo case-insensitive. */
     private String normalize(String username) {
         return (username == null) ? null : username.trim().toLowerCase();
     }
@@ -68,11 +70,11 @@ public class UserRepository {
 
     // ============================================================
     // SAVE / UPDATE
+    // Salva o aggiorna un utente.
+    // Normalizza lo username (lowercase)
+    // Impedisce inserimento di valori null o vuoti
+    // Commit immediato per garantire consistenza
     // ============================================================
-    /**
-     * Salva o aggiorna un utente nel database.
-     * Lo username viene SEMPRE normalizzato.
-     */
     public synchronized void save(Utente utente) {
 
         if (utente == null)
@@ -84,6 +86,7 @@ public class UserRepository {
         if (utente.getPasswordHash() == null || utente.getPasswordHash().isBlank())
             throw new IllegalArgumentException("Hash della password obbligatorio");
 
+        // Normalizzazione forzata per coerenza del DB
         String norm = normalize(utente.getUsername());
         utente.setUsername(norm);
 
@@ -92,7 +95,7 @@ public class UserRepository {
     }
 
     // ============================================================
-    // FIND by username
+    // LETTURA - RICERC PER USERNAME
     // ============================================================
     public Utente findByUsername(String username) {
         String norm = normalize(username);
@@ -102,23 +105,17 @@ public class UserRepository {
         return utenti.get(norm);
     }
 
-    // ============================================================
-    // EXISTS
-    // ============================================================
     public boolean exists(String username) {
         String norm = normalize(username);
         return norm != null && utenti.containsKey(norm);
     }
 
-    // ============================================================
-    // FIND ALL — snapshot immutabile
-    // ============================================================
     public Collection<Utente> findAll() {
-        return List.copyOf(utenti.values()); // snapshot & immutabile
+        return List.copyOf(utenti.values());
     }
 
     // ============================================================
-    // CLOSE DB
+    // CHIUSURA SICURA DEL DB
     // ============================================================
     public void close() {
         db.close();

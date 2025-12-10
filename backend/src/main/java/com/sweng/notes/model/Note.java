@@ -5,21 +5,26 @@ import java.time.LocalDateTime;
 import java.util.*;
 
 /**
- * Modello completo della Nota per Sprint 3:
- * - Condivisione
- * - Permessi (impostati solo in creazione)
+ * Modello completo della Nota.
+ * Include:
+ * - Condivisione e permessi (impostati in creazione)
  * - Versionamento
  * - Lock concorrente
- * - Metadati (created / modified)
+ * - Metadati (autore, timestamps)
+ * - Colore cartella
  */
 public class Note implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    // Identificatore univoco
     private int id;
+    // Contenuto
     private String titolo;
     private String contenuto;
+    // Proprietario della nota
     private String creatore;
+    // Cartella associata
     private String cartella;
 
     // ===== Condivisione =====
@@ -29,7 +34,6 @@ public class Note implements Serializable {
     private List<VersioneNota> versioni;
 
     // ===== Permessi =====
-    // Il permesso viene impostato SOLO in creazione
     private Permesso permesso;
 
     // ===== Metadati =====
@@ -218,7 +222,7 @@ public class Note implements Serializable {
     }
 
     // ============================================================
-    // METODI LOGICI
+    // VERSIONAMENTO
     // ============================================================
 
     /** Salva una versione precedente PRIMA della modifica */
@@ -246,12 +250,14 @@ public class Note implements Serializable {
         }
     }
 
-    /** Cambia tipo permesso */
+    // ============================================================
+    // PERMESSI
+    // ============================================================
+
     public void cambiaPermesso(Permesso nuovoPermesso) {
         this.permesso = nuovoPermesso;
     }
 
-    /** L’utente può leggere? */
     public boolean puoLeggere(String username) {
         if (username == null)
             return false;
@@ -264,7 +270,6 @@ public class Note implements Serializable {
                 && permesso.puoLeggere();
     }
 
-    /** L’utente può scrivere? */
     public boolean puoScrivere(String username) {
         if (username == null)
             return false;

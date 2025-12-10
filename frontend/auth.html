@@ -24,13 +24,19 @@
     <div class="auth-form">
       
       <!-- LOGIN -->
-      <div id="loginSection">
+      <div id="loginSection" class="form-inner">
         <h1>BENVENUTO!</h1>
         <p class="subtitle">Accedi per continuare a scrivere, salvare e condividere le tue note.</p>
 
-        <input type="text" id="username" placeholder="Username" required autocomplete="off" />
-        <input type="password" id="password" placeholder="Password" required autocomplete="off" />
-        
+        <div class="input-group">
+          <input type="text" id="username" class="input-field" placeholder=" " required autocomplete="off" />
+          <label for="username" class="input-label">Username</label>
+        </div>
+
+        <div class="input-group">
+          <input type="password" id="password" class="input-field" placeholder=" " required autocomplete="off" />
+          <label for="password" class="input-label">Password</label>
+        </div>
         <button id="loginBtn" class="primary-btn">Accedi</button>
 
         <p class="switch-text">
@@ -41,14 +47,24 @@
       </div>
 
       <!-- REGISTRAZIONE -->
-      <div id="registerSection" class="hidden">
-        <h1>Crea un account</h1>
+      <div id="registerSection" class="form-inner hidden">
+        <h1>CREA UN ACCOUNT</h1>
         <p class="subtitle">Registrati per iniziare a organizzare le tue note con facilità.</p>
 
-        <input type="text" id="newUsername" placeholder="Username" required autocomplete="off" />
-        <input type="password" id="newPassword" placeholder="Password" required autocomplete="off" />
-        <input type="password" id="confirmPassword" placeholder="Conferma password" required autocomplete="off" />
+        <div class="input-group">
+          <input type="text" id="newUsername" class="input-field" placeholder=" " required autocomplete="off" />
+          <label for="newUsername" class="input-label">Username</label>
+        </div>
 
+        <div class="input-group">
+          <input type="password" id="newPassword" class="input-field" placeholder=" " required autocomplete="off" />
+          <label for="newPassword" class="input-label">Password</label>
+        </div>
+
+        <div class="input-group">
+          <input type="password" id="confirmPassword" class="input-field" placeholder=" " required autocomplete="off" />
+          <label for="confirmPassword" class="input-label">Conferma password</label>
+        </div>
         <button id="registerBtn" class="primary-btn">Registrati</button>
 
         <p class="switch-text">

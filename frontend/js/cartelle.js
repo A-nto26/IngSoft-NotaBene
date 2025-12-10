@@ -1,9 +1,5 @@
-// =====================================================
-// 🌐 CONFIGURAZIONE BASE
-// =====================================================
-const API_VISIBLE_NOTES = "http://localhost:8080/api/notes/visible";
 const API_NOTES = "http://localhost:8080/api/notes";
-const user = (localStorage.getItem("loggedUser") || "").toLowerCase();
+const user = localStorage.getItem("loggedUser");
 
 const folderList = document.getElementById("folderItems");
 const noteList = document.getElementById("noteList");
@@ -11,11 +7,16 @@ const searchInput = document.getElementById("searchInput");
 const noResults = document.getElementById("noResults");
 const welcomeUser = document.getElementById("welcomeUser");
 
-// Messaggio "Seleziona una cartella"
+// messaggio "Seleziona una cartella"
 const noFolderSelected = document.getElementById("noFolderSelected");
 
+// === TRACKING VERSIONI (come in dashboard.js) ===
+window._noteVersions = window._noteVersions || {};
+window._versionLoadedAtOpen = window._versionLoadedAtOpen || {};
+
+
 // =====================================================
-// 🟦 TOAST BASE
+//  TOAST BASE
 // =====================================================
 function showToast(type, message) {
   const container = document.getElementById("toastContainer");
@@ -26,11 +27,13 @@ function showToast(type, message) {
   toast.textContent = message;
 
   container.appendChild(toast);
+
   setTimeout(() => toast.remove(), 4000);
 }
 
+
 // =====================================================
-// 🟧 TOAST DI CONFERMA (SÌ / NO)
+//  TOAST DI CONFERMA (SÌ / NO)
 // =====================================================
 function showConfirmToast(message, onConfirm, onCancel = null) {
   const container = document.getElementById("toastContainer");
@@ -72,13 +75,16 @@ function showConfirmToast(message, onConfirm, onCancel = null) {
 
   btnBox.appendChild(yesBtn);
   btnBox.appendChild(noBtn);
+
   toast.appendChild(msg);
   toast.appendChild(btnBox);
+
   container.appendChild(toast);
 }
 
+
 // =====================================================
-// 🟩 TOAST CON INPUT
+// TOAST CON INPUT (per creare cartelle senza prompt)
 // =====================================================
 function showInputToast(message, placeholder, onConfirm, onCancel = null) {
   const container = document.getElementById("toastContainer");
@@ -128,22 +134,21 @@ function showInputToast(message, placeholder, onConfirm, onCancel = null) {
   toast.appendChild(msg);
   toast.appendChild(input);
   toast.appendChild(btnBox);
+
   container.appendChild(toast);
 }
 
-// =====================================================
-// CONTROLLI LOGIN
-// =====================================================
 if (!user) {
   showToast("error", "Devi effettuare il login.");
   setTimeout(() => window.location.replace("auth.html"), 1200);
 }
 
+
 if (welcomeUser) {
   welcomeUser.textContent = `Ciao, ${user}! 👋`;
 }
 
-// Logout
+// ===== LOGOUT ===== */
 const logoutBtn = document.getElementById("logoutBtn");
 if (logoutBtn) {
   logoutBtn.addEventListener("click", () => {
@@ -152,25 +157,85 @@ if (logoutBtn) {
   });
 }
 
-// Torna alla dashboard
+/* ===== TORNA ALLA DASHBOARD ===== */
 const backDashboardBtn = document.getElementById("backDashboardBtn");
+
 if (backDashboardBtn) {
   backDashboardBtn.addEventListener("click", () => {
     window.location.href = "dashboard.html";
   });
 }
 
+// =====================================================
+//  CONTROLLO VERSIONE COME DASHBOARD
+// =====================================================
+async function ensureLatestVersion(nota, user) {
+    try {
+        const res = await fetch(`${API_NOTES}/${nota.id}?user=${encodeURIComponent(user)}`);
+        if (!res.ok) return nota;
+
+        const fresh = await res.json();
+
+        const nuova = fresh.versione;
+        const vecchia = window._noteVersions[nota.id];
+
+        // se non è cambiata, torna quella attuale
+        if (nuova === vecchia) return nota;
+
+        //  versione aggiornata,  notifica
+        showToast("info", `🔄 La nota è stata aggiornata da ${fresh.lastModifiedBy}.`);
+
+        // aggiorna nota locale
+        Object.assign(nota, {
+            titolo: fresh.titolo,
+            contenuto: fresh.contenuto,
+            cartella: fresh.cartella,
+            coloreCartella: fresh.coloreCartella,
+            permesso: fresh.permesso,
+            condivisaCon: fresh.condivisaCon,
+            ruolo: fresh.ruolo,
+            lastModifiedAt: fresh.lastModifiedAt,
+            lastModifiedBy: fresh.lastModifiedBy,
+            creatore: fresh.creatore,
+            autoreUsername: fresh.autoreUsername,
+            versione: fresh.versione,
+        });
+
+        // aggiorna cache versioni
+        window._noteVersions[nota.id] = fresh.versione;
+
+        // ricarica la UI della pagina cartelle
+        await caricaNote();
+
+        return nota;
+
+    } catch (e) {
+        console.warn("Errore controllo versione cartelle:", e);
+        return nota;
+    }
+}
+
 let tutteLeNote = [];
 let cartellaAttiva = null;
 
-// =====================================================
-// CARICA NOTE VISIBILI (Sprint 4)
-// =====================================================
+/* ====== LOCK INFO (solo lettura — per impedire eliminazione) ====== */
+async function getLockInfo(noteId) {
+  try {
+    const res = await fetch(`${API_NOTES}/${noteId}/lock`);
+    if (!res.ok) return null;
+    return await res.json(); // { lockedBy: "...", lockedAt: ... }
+  } catch (e) {
+    console.error("Errore lock info:", e);
+    return null;
+  }
+}
+
+
+/* ===== CARICA TUTTE LE NOTE ===== */
 async function caricaNote() {
   try {
-    const res = await fetch(`${API_VISIBLE_NOTES}/${encodeURIComponent(user)}`);
+    const res = await fetch(`${API_NOTES}/visible/${encodeURIComponent(user)}`);
     tutteLeNote = await res.json();
-
     generaCartelle();
     mostraNote();
   } catch (err) {
@@ -178,10 +243,9 @@ async function caricaNote() {
   }
 }
 
-// =====================================================
-// GENERA LISTA CARTELLE
-// =====================================================
+/* ===== CREA LISTA CARTELLE ===== */
 function generaCartelle() {
+
   const cartelle = [...new Set(
     tutteLeNote
       .filter(n => n.cartella && n.cartella.trim() !== "")
@@ -194,37 +258,43 @@ function generaCartelle() {
     const li = document.createElement("li");
     li.className = "folder-row";
 
-    const coloreCartella =
-      tutteLeNote.find(n => n.cartella === nome)?.coloreCartella || "#cccccc";
+    // recuperiamo il colore della cartella (prendiamo la prima nota che la usa)
+    const coloreCartella = tutteLeNote.find(n => n.cartella === nome)?.coloreCartella || "#cccccc";
 
+    // icona + nome cartella
     li.innerHTML = `
-      <svg class="folder-icon-list" style="color:${coloreCartella};">
-          <use href="#folder-fill"></use>
-          <use href="#folder-stroke"></use>
-      </svg>
-      ${nome}
+        <svg class="folder-icon-list" style="color:${coloreCartella};">
+            <use href="#folder-fill"></use>
+            <use href="#folder-stroke"></use>
+        </svg>
+        ${nome}
     `;
 
+    // salviamo il colore dentro dataset, ci servirà al click
     li.dataset.colore = coloreCartella;
 
     li.addEventListener("click", () => {
+      // Nasconde il messaggio iniziale
       noFolderSelected.classList.add("hidden");
 
+      // reset tutte le cartelle
       document.querySelectorAll("#folderItems li").forEach(el => {
-        el.classList.remove("active");
-        el.style.backgroundColor = "";
-        el.style.borderLeft = "";
+          el.classList.remove("active");
+          el.style.backgroundColor = "";
+          el.style.borderLeft = "";
       });
 
+      // attiva questa
       li.classList.add("active");
 
+      // colore dinamico (riempimento e bordo)
       const bg = li.dataset.colore;
-      const bgLight = lighten(bg, 120);
-      const bgBorder = darken(bg, 35);
+      const bgLight = lighten(bg, 120);   
+      const bgBorder = darken(bg, 35);    
 
       li.style.backgroundColor = bgLight;
       li.style.borderLeft = `4px solid ${bgBorder}`;
-      li.style.color = "#000";
+      li.style.color = "#000";            
 
       cartellaAttiva = nome;
       mostraNote();
@@ -234,18 +304,17 @@ function generaCartelle() {
   });
 }
 
-// =====================================================
-// MOSTRA NOTE IN CARTELLA
-// =====================================================
 function mostraNote() {
   noteList.innerHTML = "";
 
+  // SE NON C'È CARTELLA SELEZIONATA → mostra il messaggio
   if (!cartellaAttiva) {
     noFolderSelected.classList.remove("hidden");
     noResults.style.display = "none";
     return;
   }
 
+  // quando una cartella è selezionata si nasconde il messaggio
   noFolderSelected.classList.add("hidden");
 
   const testoRicerca = searchInput.value.toLowerCase();
@@ -253,8 +322,8 @@ function mostraNote() {
 
   if (testoRicerca) {
     filtrate = filtrate.filter(n =>
-      n.titolo.toLowerCase().includes(testoRicerca) ||
-      n.contenuto.toLowerCase().includes(testoRicerca)
+      (n.titolo || "").toLowerCase().includes(testoRicerca) ||
+      (n.contenuto || "").toLowerCase().includes(testoRicerca)
     );
   }
 
@@ -269,18 +338,56 @@ function mostraNote() {
     const card = document.createElement("div");
     card.className = "note-card";
 
-    const permessoTipo = (nota.permesso?.tipo || "privata").toLowerCase();
+    // ==========================
+    //  PERMESSO NORMALIZZATO
+    // (stessa logica della dashboard)
+    // ==========================
+    let permessoTipo = "privata";
 
-    if (permessoTipo === "privata") card.classList.add("note-private");
-    else if (permessoTipo.includes("lettura")) card.classList.add("shared-read");
-    else if (permessoTipo.includes("scrittura")) card.classList.add("shared-write");
+    if (!nota.permesso) {
+      permessoTipo = "privata";
+    } else if (typeof nota.permesso === "string") {
+      permessoTipo = nota.permesso.toLowerCase();
+    } else if (nota.permesso && nota.permesso.tipo) {
+      // es: { tipo: "SolaLettura" } → "solalettura"
+      permessoTipo = nota.permesso.tipo.toLowerCase();
+    }
 
-    const versioneCorrente = (nota.versioni?.length || 0) + 1;
+    // ==========================
+    //  COLORE BORDO CARD
+    // (usa includes per gestire "solalettura", "scrittura", ecc.)
+    // ==========================
+    if (permessoTipo.includes("scrittura")) {
+      card.classList.add("shared-write");
+    } else if (permessoTipo.includes("lettura")) {
+      card.classList.add("shared-read");
+    } else {
+      // fallback → privata
+      card.classList.add("note-private");
+    }
+
+    // ==========================
+    // VERSIONE (usa campo versione SE esiste)
+    // ==========================
+    const versioneCorrente =
+      typeof nota.versione === "number"
+        ? nota.versione
+        : (nota.versioni?.length || 0) + 1;
+
+    // ==========================
+    //  COLORE BADGE VERSIONE
+    // ==========================
+    let badgeClass = "version-badge-private";
+    if (permessoTipo.includes("scrittura")) {
+      badgeClass = "version-badge-write";
+    } else if (permessoTipo.includes("lettura")) {
+      badgeClass = "version-badge-read";
+    }
 
     card.innerHTML = `
       <div class="card-header">
         <button class="note-menu-btn">⋮</button>
-        <div class="version-badge-folder">v${versioneCorrente}</div>
+        <div class="version-badge-folder ${badgeClass}">v${versioneCorrente}</div>
 
         <div class="note-menu">
           <button class="delete-note-btn">🗑 Elimina nota</button>
@@ -291,62 +398,85 @@ function mostraNote() {
       <p>${nota.contenuto}</p>
     `;
 
-    // Preview
-    card.addEventListener("click", () => {
-      document.getElementById("previewTitolo").textContent = nota.titolo;
-      document.getElementById("previewContenuto").textContent = nota.contenuto;
-      document.getElementById("previewModal").style.display = "flex";
-    });
+    // preview
+    card.addEventListener("click", async () => {
+    
+    // Normalizza versione attuale per sicurezza (come dashboard)
+    const versioneCorrente =
+        typeof nota.versione === "number"
+            ? nota.versione
+            : (nota.versioni?.length || 0) + 1;
+
+    window._noteVersions[nota.id] = versioneCorrente;
+    window._versionLoadedAtOpen[nota.id] = versioneCorrente;
+
+    //  controllo versione lato server
+    const notaAggiornata = await ensureLatestVersion(nota, user);
+
+    //  Apri preview (solo titolo + contenuto)
+    document.getElementById("previewTitolo").textContent = notaAggiornata.titolo;
+    document.getElementById("previewContenuto").textContent = notaAggiornata.contenuto;
+
+    document.getElementById("previewModal").style.display = "flex";
+});
 
     noteList.appendChild(card);
 
-    // MENU ⋮
+    // ---- MENU [⋮] ----
     const menuBtn = card.querySelector(".note-menu-btn");
     const menu = card.querySelector(".note-menu");
     const deleteBtn = card.querySelector(".delete-note-btn");
 
+    // apre/chiude il menu senza aprire la preview
     menuBtn.addEventListener("click", (e) => {
       e.stopPropagation();
       menu.classList.toggle("open");
     });
 
+    // chiudi menu cliccando fuori
     document.addEventListener("click", () => {
       menu.classList.remove("open");
     });
 
-    // ELIMINA NOTA
+    // ---- ELIMINA NOTA ----
     deleteBtn.addEventListener("click", async (e) => {
-      e.stopPropagation();
+  e.stopPropagation();
 
-      showConfirmToast(
-        `Vuoi davvero eliminare la nota "${nota.titolo}"?`,
-        async () => {
-          try {
-            await fetch(`${API_NOTES}/${nota.id}?user=${user}`, {
-              method: "DELETE"
-            });
+  //  Controllo lock prima di chiedere conferma
+  const lock = await getLockInfo(nota.id);
 
-            showToast("success", "🗑 Nota eliminata!");
-            caricaNote();
+  if (lock && lock.lockedBy) {
+    showToast("error", `❌ Nota in modifica da ${lock.lockedBy}. Eliminazione non consentita.`);
+    return;
+  }
 
-          } catch (err) {
-            console.error("Errore eliminazione:", err);
-            showToast("error", "Errore durante l'eliminazione.");
-          }
-        }
-      );
+  //  Procedura normale
+  showConfirmToast(
+    `Vuoi davvero eliminare la nota "${nota.titolo}"?`,
+    async () => {
+      try {
+        await fetch(`${API_NOTES}/${nota.id}?user=${user}`, {
+          method: "DELETE"
+        });
+
+        showToast("success", "🗑 Nota eliminata!");
+        caricaNote();
+
+      } catch (err) {
+        console.error("Errore:", err);
+        showToast("error", "Errore durante l'eliminazione.");
+      }
+    }
+  );
     });
   });
 }
 
-// =====================================================
-// FILTRO IN TEMPO REALE
-// =====================================================
+
+/* ===== FILTRO IN TEMPO REALE ===== */
 searchInput.addEventListener("input", mostraNote);
 
-// =====================================================
-// MODALE ANTEPRIMA
-// =====================================================
+/* ===== MODALE ANTEPRIMA — CHIUSURA ===== */
 const previewModal = document.getElementById("previewModal");
 const closePreviewBtn = document.getElementById("closePreviewBtn");
 
@@ -358,13 +488,14 @@ if (closePreviewBtn) {
 
 if (previewModal) {
   previewModal.addEventListener("click", (e) => {
-    if (e.target === previewModal) previewModal.style.display = "none";
+    // Chiude cliccando fuori dalla card
+    if (e.target === previewModal) {
+      previewModal.style.display = "none";
+    }
   });
 }
 
-// =====================================================
-// CREA NUOVA CARTELLA
-// =====================================================
+/* ===== CREA NUOVA CARTELLA ===== */
 const newFolderBtn = document.getElementById("newFolderBtn");
 
 newFolderBtn.addEventListener("click", () => {
@@ -379,28 +510,24 @@ newFolderBtn.addEventListener("click", () => {
   );
 });
 
-// =====================================================
-// COLORI: lighten + darken
-// =====================================================
+/* ===== FUNZIONE PER CAMBIARE COLORE ===== */
 function lighten(hex, amount = 70) {
-  if (!hex) return "#eee";
-  let c = hex.replace("#", "").match(/.{1,2}/g);
-  let r = Math.min(255, parseInt(c[0], 16) + amount).toString(16).padStart(2, "0");
-  let g = Math.min(255, parseInt(c[1], 16) + amount).toString(16).padStart(2, "0");
-  let b = Math.min(255, parseInt(c[2], 16) + amount).toString(16).padStart(2, "0");
-  return `#${r}${g}${b}`;
+    if (!hex) return "#eee";
+    let c = hex.replace("#", "").match(/.{1,2}/g);
+    let r = Math.min(255, parseInt(c[0], 16) + amount).toString(16).padStart(2, "0");
+    let g = Math.min(255, parseInt(c[1], 16) + amount).toString(16).padStart(2, "0");
+    let b = Math.min(255, parseInt(c[2], 16) + amount).toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
 }
 
 function darken(hex, amount = 40) {
-  if (!hex) return "#ccc";
-  let c = hex.replace("#", "").match(/.{1,2}/g);
-  let r = Math.max(0, parseInt(c[0], 16) - amount).toString(16).padStart(2, "0");
-  let g = Math.max(0, parseInt(c[1], 16) - amount).toString(16).padStart(2, "0");
-  let b = Math.max(0, parseInt(c[2], 16) - amount).toString(16).padStart(2, "0");
-  return `#${r}${g}${b}`;
+    if (!hex) return "#ccc";
+    let c = hex.replace("#", "").match(/.{1,2}/g);
+    let r = Math.max(0, parseInt(c[0], 16) - amount).toString(16).padStart(2, "0");
+    let g = Math.max(0, parseInt(c[1], 16) - amount).toString(16).padStart(2, "0");
+    let b = Math.max(0, parseInt(c[2], 16) - amount).toString(16).padStart(2, "0");
+    return `#${r}${g}${b}`;
 }
 
-// =====================================================
-// AVVIO
-// =====================================================
+/* ===== AVVIO ===== */
 caricaNote();
