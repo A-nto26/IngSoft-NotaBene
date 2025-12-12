@@ -1,6 +1,7 @@
 package com.sweng.notes.controller;
 
 import com.sweng.notes.dto.FolderRequest;
+import com.sweng.notes.dto.FolderResponse;
 import com.sweng.notes.model.Cartella;
 import com.sweng.notes.model.Note;
 import com.sweng.notes.service.FolderService;
@@ -36,32 +37,40 @@ class FolderControllerTest {
 
         when(folderService.getAllFolders()).thenReturn(mockList);
 
-        ResponseEntity<List<Cartella>> res = controller.getAllFolders();
+        ResponseEntity<List<FolderResponse>> res = controller.getAllFolders();
 
         assertEquals(200, res.getStatusCode().value());
         assertEquals(2, res.getBody().size());
+
+        // Verifica mapping
+        FolderResponse f1 = res.getBody().get(0);
+        assertEquals("casa", f1.getNome());
+        assertEquals("mario", f1.getCreatore());
+        assertEquals("#fff", f1.getColore());
+
         verify(folderService, times(1)).getAllFolders();
     }
 
- /*
-    // ============================================================
-    // GET NOTES IN FOLDER (endpoint non piu attivo)
-    // manteniamo per completezza
-    // ============================================================
-    @Test
-    void testGetNotesInFolder() {
-        List<Note> mockNotes = List.of(
-                new Note(1, "Titolo1", "C1", "mario", "casa"),
-                new Note(2, "Titolo2", "C2", "mario", "casa"));
-
-        when(folderService.getNotesInFolder("casa")).thenReturn(mockNotes);
-
-        ResponseEntity<List<Note>> res = controller.getNotesInFolder("casa");
-
-        assertEquals(200, res.getStatusCode().value());
-        assertEquals(2, res.getBody().size());
-    }
-*/
+    /*
+     * // ============================================================
+     * // GET NOTES IN FOLDER (endpoint non piu attivo)
+     * // manteniamo per completezza
+     * // ============================================================
+     * 
+     * @Test
+     * void testGetNotesInFolder() {
+     * List<Note> mockNotes = List.of(
+     * new Note(1, "Titolo1", "C1", "mario", "casa"),
+     * new Note(2, "Titolo2", "C2", "mario", "casa"));
+     * 
+     * when(folderService.getNotesInFolder("casa")).thenReturn(mockNotes);
+     * 
+     * ResponseEntity<List<Note>> res = controller.getNotesInFolder("casa");
+     * 
+     * assertEquals(200, res.getStatusCode().value());
+     * assertEquals(2, res.getBody().size());
+     * }
+     */
     // ============================================================
     // CREATE FOLDER
     // ============================================================

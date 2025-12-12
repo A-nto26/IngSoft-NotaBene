@@ -50,28 +50,24 @@ public class UserService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Password obbligatoria");
         }
 
-
         if (!USERNAME_PATTERN.matcher(normalized).matches()) {
             LoggerActions.log("USER_REGISTER_FAIL", normalized, Map.of(
-                "reason", "username_formato_non_valido"
-            ));
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "reason", "username_formato_non_valido"));
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Username non valido (solo lettere, numeri, underscore, 3-20 caratteri)");
         }
 
         if (password.length() < 8) {
             LoggerActions.log("USER_REGISTER_FAIL", normalized, Map.of(
-                "reason", "password_troppo_corta"
-            ));
+                    "reason", "password_troppo_corta"));
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "La password deve contenere almeno 8 caratteri");
         }
 
         if (userRepo.exists(normalized)) {
             LoggerActions.log("USER_REGISTER_FAIL", normalized, Map.of(
-                "reason", "username_gia_registrato"
-            ));
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, 
+                    "reason", "username_gia_registrato"));
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Nome utente già registrato");
         }
 
@@ -81,7 +77,7 @@ public class UserService {
         userRepo.save(utente);
         LoggerActions.log("USER_REGISTER_SUCCESS", normalized, Map.of());
 
-        return new UserResponse(true, "Registrazione completata", username);
+        return new UserResponse(true, "Registrazione completata", normalized);
     }
 
     // ============================================================
@@ -91,8 +87,7 @@ public class UserService {
 
         if (username == null || password == null) {
             LoggerActions.log("USER_LOGIN_FAIL", "system", Map.of(
-                "reason", "credenziali_mancanti"
-            ));
+                    "reason", "credenziali_mancanti"));
             return new UserResponse(false, "Credenziali non valide", null);
         }
 
@@ -101,15 +96,13 @@ public class UserService {
         Utente u = userRepo.findByUsername(username);
         if (u == null) {
             LoggerActions.log("USER_LOGIN_FAIL", username, Map.of(
-                "reason", "utente_non_registrato"
-            ));
+                    "reason", "utente_non_registrato"));
             return new UserResponse(false, "Utente non registrato", null);
         }
 
         if (!encoder.matches(password, u.getPasswordHash())) {
             LoggerActions.log("USER_LOGIN_FAIL", username, Map.of(
-                "reason", "password_errata"
-            ));
+                    "reason", "password_errata"));
             return new UserResponse(false, "Password errata", null);
         }
 
@@ -129,7 +122,7 @@ public class UserService {
     /** Restituisce solo gli username, ordinati alfabeticamente. */
     public Collection<String> getAllUsernames() {
         return userRepo.findAll().stream()
-                .map(Utente::getUsername)
+                .map(u -> u.getUsername().trim().toLowerCase())
                 .sorted()
                 .collect(Collectors.toList());
     }

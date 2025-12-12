@@ -1,4 +1,4 @@
-//  CONFIG SEZIONI
+// CONFIG SEZIONI
 const loginSection = document.getElementById("loginSection");
 const registerSection = document.getElementById("registerSection");
 const showRegister = document.getElementById("showRegister");
@@ -6,12 +6,12 @@ const showLogin = document.getElementById("showLogin");
 const msg = document.getElementById("msg");
 const msgRegister = document.getElementById("msgRegister");
 
-// API aggiornate
+// API
 const API_REGISTER = "http://localhost:8080/api/users/register";
 const API_LOGIN    = "http://localhost:8080/api/users/login";
 
 
-//  CAMBIO SEZIONE
+// CAMBIO SEZIONE
 showRegister.addEventListener("click", (e) => {
   e.preventDefault();
   loginSection.classList.add("hidden");
@@ -25,13 +25,15 @@ showLogin.addEventListener("click", (e) => {
 });
 
 
-//  REGISTRAZIONE
+// REGISTRAZIONE
 document.getElementById("registerBtn").addEventListener("click", async () => {
-  const username = document.getElementById("newUsername").value.trim();
-  const password = document.getElementById("newPassword").value.trim();
-  const confirm = document.getElementById("confirmPassword").value.trim();
 
-  // --- Validazioni ---
+  const rawUsername = document.getElementById("newUsername").value.trim();
+  const username = rawUsername.toLowerCase();   
+  
+  const password = document.getElementById("newPassword").value.trim();
+  const confirm  = document.getElementById("confirmPassword").value.trim();
+
   if (!username || !password || !confirm) {
     msgRegister.textContent = "⚠️ Tutti i campi sono obbligatori.";
     msgRegister.style.color = "#e58500";
@@ -44,7 +46,6 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
     return;
   }
 
-  // --- Invio al backend ---
   try {
     const res = await fetch(API_REGISTER, {
       method: "POST",
@@ -76,8 +77,11 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
 
 
 // LOGIN
-  document.getElementById("loginBtn").addEventListener("click", async () => {
-  const username = document.getElementById("username").value.trim();
+document.getElementById("loginBtn").addEventListener("click", async () => {
+
+  const rawUsername = document.getElementById("username").value.trim();
+  const username = rawUsername.toLowerCase();   
+  
   const password = document.getElementById("password").value.trim();
 
   if (!username || !password) {
@@ -99,8 +103,7 @@ document.getElementById("registerBtn").addEventListener("click", async () => {
       msg.textContent = "✅ Accesso effettuato!";
       msg.style.color = "green";
 
-      // Salva solo l'username per l'uso nelle note
-      localStorage.setItem("loggedUser", username);
+      localStorage.setItem("loggedUser", username); 
 
       setTimeout(() => {
         window.location.href = "dashboard.html";

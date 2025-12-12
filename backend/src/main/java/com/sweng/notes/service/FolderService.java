@@ -18,6 +18,13 @@ public class FolderService {
     }
 
     // ============================================================
+    // UTILITY INTERNA PER NORMALIZZARE
+    // ============================================================
+    private String normalize(String s) {
+        return (s == null) ? null : s.trim().toLowerCase();
+    }
+
+    // ============================================================
     // CARTELLE - OPERAZIONI BASE
     // ============================================================
 
@@ -28,86 +35,76 @@ public class FolderService {
 
     /** Restituisce tutte le note appartenenti ad una cartella */
     public List<Note> getNotesInFolder(String nomeCartella) {
-        if (nomeCartella == null || nomeCartella.isBlank()) {
+        String key = normalize(nomeCartella);
+        if (key == null || key.isBlank()) {
             return Collections.emptyList();
         }
-        return noteRepo.findByCartella(nomeCartella.trim().toLowerCase());
+        return noteRepo.findByCartella(key);
     }
 
     /** Crea una nuova cartella */
     public void createFolder(String nomeCartella, String colore, String creatore) {
-        if (nomeCartella == null || nomeCartella.isBlank()) {
-            LoggerActions.log("FOLDER_CREATE_FAIL", 
-                creatore != null ? creatore : "system",
-                Map.of("reason", "nome_mancante"));
+
+        String nomeNorm = normalize(nomeCartella);
+        String creatoreNorm = normalize(creatore);
+
+        if (nomeNorm == null || nomeNorm.isBlank()) {
+            LoggerActions.log("FOLDER_CREATE_FAIL",
+                    creatoreNorm != null ? creatoreNorm : "system",
+                    Map.of("reason", "nome_mancante"));
             throw new IllegalArgumentException("Nome cartella obbligatorio");
         }
 
-        String nomeNorm = nomeCartella.trim().toLowerCase();
-        String creatoreNorm = creatore != null ? creatore.trim().toLowerCase() : null;
-
         if (noteRepo.findFolderByName(nomeNorm) != null) {
             LoggerActions.log("FOLDER_CREATE_FAIL", creatoreNorm, Map.of(
-                "folder", nomeNorm,
-                "reason", "cartella_esistente"
-            ));
+                    "folder", nomeNorm,
+                    "reason", "cartella_esistente"));
             throw new IllegalArgumentException("La cartella '" + nomeNorm + "' esiste già.");
         }
 
         String coloreEffettivo = (colore == null || colore.isBlank())
                 ? "#FFD700"
-                : colore;
+                : colore.trim();
 
         noteRepo.createFolder(nomeNorm, creatoreNorm, coloreEffettivo);
+
         LoggerActions.log("FOLDER_CREATE_SUCCESS", creatoreNorm, Map.of(
-            "folder", nomeNorm,
-            "color", coloreEffettivo
-        ));
+                "folder", nomeNorm,
+                "color", coloreEffettivo));
     }
 
     /** Elimina una cartella esistente (e dissocia le note) */
     public void deleteFolder(String nomeCartella) {
-        if (nomeCartella == null || nomeCartella.isBlank()) {
-            LoggerActions.log("FOLDER_DELETE_FAIL", "system", Map.of(
-                "reason", "nome_mancante"
-            ));
+
+        String nomeNorm = normalize(nomeCartella);
+        if (nomeNorm == null || nomeNorm.isBlank()) {
+            LoggerActions.log("FOLDER_DELETE_FAIL", "system", Map.of("reason", "nome_mancante"));
             return;
         }
-
-        String nomeNorm = nomeCartella.trim().toLowerCase();
 
         noteRepo.deleteFolder(nomeNorm);
 
         LoggerActions.log("FOLDER_DELETE_SUCCESS", "system", Map.of(
-            "folder", nomeNorm
-        ));
+                "folder", nomeNorm));
     }
 
     // ============================================================
     // NOTE VISIBILI PER UTENTE (PROPRIE + CONDIVISE)
     // ============================================================
 
-    /**
-     * Restituisce tutte le note visibili per un utente in una specifica cartella.
-     * La visibilità si basa su:
-     * - autore
-     * - utenti con cui la nota è condivisa
-     * - permesso associato alla nota (può leggere / può scrivere)
-     */
     public List<Note> getNotesInFolderForUser(String nomeCartella, String username) {
 
-        if (nomeCartella == null || nomeCartella.isBlank() ||
-                username == null || username.isBlank()) {
+        String folderKey = normalize(nomeCartella);
+        String userNorm = normalize(username);
 
-             LoggerActions.log("FOLDER_NOTES_VIEW_FAIL", 
-                username != null ? username : "system", 
-                Map.of("reason", "parametri_invalidi"));
+        if (folderKey == null || folderKey.isBlank() ||
+            userNorm == null || userNorm.isBlank()) {
 
+            LoggerActions.log("FOLDER_NOTES_VIEW_FAIL",
+                    userNorm != null ? userNorm : "system",
+                    Map.of("reason", "parametri_invalidi"));
             return Collections.emptyList();
         }
-
-        String folderKey = nomeCartella.trim().toLowerCase();
-        String userNorm = username.trim().toLowerCase();
 
         List<Note> tutte = noteRepo.findByCartella(folderKey);
         List<Note> visibili = new ArrayList<>();
@@ -119,10 +116,9 @@ public class FolderService {
         }
 
         LoggerActions.log("FOLDER_NOTES_VIEW_SUCCESS", userNorm, Map.of(
-            "folder", folderKey,
-            "notesReturned", visibili.size()
-        ));
-        
+                "folder", folderKey,
+                "notesReturned", visibili.size()));
+
         return visibili;
     }
 }

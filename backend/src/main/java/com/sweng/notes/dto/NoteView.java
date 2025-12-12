@@ -12,22 +12,22 @@ public class NoteView {
     private String cartella;
     private String coloreCartella;
 
-    // Permesso: "privata", "lettura", "scrittura"
-    private String permesso;
-
-    // Autore della nota
+    private String permesso;         // "privata" | "lettura" | "scrittura"
     private String creatore;
-
-    // Utenti con cui è condivisa (escluso autore e utente corrente)
     private List<String> condivisaCon;
 
-    private String ruolo; // autore | lettura | scrittura
-    private String lockedBy; // utente che detiene il lock
-    private int versione; // numero versione corrente
+    private String ruolo;            // autore | lettura | scrittura
+    private String lockedBy;         // chi detiene il lock
+
+    private int versione;            // numero versione corrente
+    private boolean versionLimitReached; // limite versioni 50
+
+    private boolean canChangePermission; // frontend abilita/disabilita menù permessi
 
     private LocalDateTime createdAt;
     private LocalDateTime lastModifiedAt;
     private String lastModifiedBy;
+
     private List<VersioneNota> versioni;
 
     // ==========================================================
@@ -37,7 +37,6 @@ public class NoteView {
     public int getId() {
         return id;
     }
-
     public void setId(int id) {
         this.id = id;
     }
@@ -45,7 +44,6 @@ public class NoteView {
     public String getTitolo() {
         return titolo;
     }
-
     public void setTitolo(String titolo) {
         this.titolo = titolo;
     }
@@ -53,7 +51,6 @@ public class NoteView {
     public String getContenuto() {
         return contenuto;
     }
-
     public void setContenuto(String contenuto) {
         this.contenuto = contenuto;
     }
@@ -61,7 +58,6 @@ public class NoteView {
     public String getCartella() {
         return cartella;
     }
-
     public void setCartella(String cartella) {
         this.cartella = cartella;
     }
@@ -69,7 +65,6 @@ public class NoteView {
     public String getColoreCartella() {
         return coloreCartella;
     }
-
     public void setColoreCartella(String coloreCartella) {
         this.coloreCartella = coloreCartella;
     }
@@ -77,7 +72,6 @@ public class NoteView {
     public String getPermesso() {
         return permesso;
     }
-
     public void setPermesso(String permesso) {
         this.permesso = permesso;
     }
@@ -85,7 +79,6 @@ public class NoteView {
     public String getCreatore() {
         return creatore;
     }
-
     public void setCreatore(String creatore) {
         this.creatore = creatore;
     }
@@ -93,7 +86,6 @@ public class NoteView {
     public List<String> getCondivisaCon() {
         return condivisaCon;
     }
-
     public void setCondivisaCon(List<String> condivisaCon) {
         this.condivisaCon = condivisaCon;
     }
@@ -101,7 +93,6 @@ public class NoteView {
     public String getRuolo() {
         return ruolo;
     }
-
     public void setRuolo(String ruolo) {
         this.ruolo = ruolo;
     }
@@ -109,7 +100,6 @@ public class NoteView {
     public String getLockedBy() {
         return lockedBy;
     }
-
     public void setLockedBy(String lockedBy) {
         this.lockedBy = lockedBy;
     }
@@ -117,15 +107,27 @@ public class NoteView {
     public int getVersione() {
         return versione;
     }
-
     public void setVersione(int versione) {
         this.versione = versione;
+    }
+
+    public boolean isVersionLimitReached() {
+        return versionLimitReached;
+    }
+    public void setVersionLimitReached(boolean versionLimitReached) {
+        this.versionLimitReached = versionLimitReached;
+    }
+
+    public boolean isCanChangePermission() {
+        return canChangePermission;
+    }
+    public void setCanChangePermission(boolean canChangePermission) {
+        this.canChangePermission = canChangePermission;
     }
 
     public LocalDateTime getCreatedAt() {
         return createdAt;
     }
-
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
     }
@@ -133,7 +135,6 @@ public class NoteView {
     public LocalDateTime getLastModifiedAt() {
         return lastModifiedAt;
     }
-
     public void setLastModifiedAt(LocalDateTime lastModifiedAt) {
         this.lastModifiedAt = lastModifiedAt;
     }
@@ -141,7 +142,6 @@ public class NoteView {
     public String getLastModifiedBy() {
         return lastModifiedBy;
     }
-
     public void setLastModifiedBy(String lastModifiedBy) {
         this.lastModifiedBy = lastModifiedBy;
     }
@@ -149,9 +149,7 @@ public class NoteView {
     public List<VersioneNota> getVersioni() {
         return versioni;
     }
-
     public void setVersioni(List<VersioneNota> versioni) {
         this.versioni = versioni;
     }
-
 }

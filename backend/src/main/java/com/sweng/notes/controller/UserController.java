@@ -7,15 +7,13 @@ import org.springframework.web.bind.annotation.*;
 import com.sweng.notes.dto.UserResponse;
 import com.sweng.notes.dto.UserRequest;
 
-
 import java.util.Collection;
 
-/**
- * Controller REST per la gestione degli utenti.
- * Funzionalità:
- * - Registrazione (username + password)
- * - Login
- * - Elenco username (per condivisione note)
+/** * Controller REST per la gestione degli utenti.
+ *  Funzionalità:
+ *  - Registrazione (username + password) 
+ *  - Login 
+ *  - Elenco username (per condivisione note) 
  */
 @CrossOrigin(origins = "*", allowedHeaders = "*", methods = {
         RequestMethod.GET,
@@ -34,15 +32,30 @@ public class UserController {
         this.userService = userService;
     }
 
+    private String normalize(String s) {
+        return (s == null ? null : s.trim().toLowerCase());
+    }
+
     // ============================================================
     // POST - REGISTRAZIONE
     // ============================================================
     @PostMapping("/register")
     public ResponseEntity<UserResponse> register(@RequestBody UserRequest req) {
-        UserResponse response = userService.register(
-            req.getUsername(),
-            req.getPassword()
-        );
+
+        String username = normalize(req.getUsername());
+        String password = req.getPassword();
+
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(new UserResponse(false, "Username o password mancanti", null));
+        }
+
+        UserResponse response = userService.register(username, password);
+
+        if (!response.isSuccess()) {
+            // Utente già registrato
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+        }
 
         return ResponseEntity.ok(response);
     }
@@ -53,19 +66,26 @@ public class UserController {
     @PostMapping("/login")
     public ResponseEntity<UserResponse> login(@RequestBody UserRequest req) {
 
-        UserResponse resp = userService.login(req.getUsername(), req.getPassword());
+        String username = normalize(req.getUsername());
+        String password = req.getPassword();
+
+        if (username == null || username.isBlank() || password == null || password.isBlank()) {
+            return ResponseEntity.badRequest()
+                    .body(new UserResponse(false, "Username o password mancanti", null));
+        }
+
+        UserResponse resp = userService.login(username, password);
 
         if (!resp.isSuccess()) {
 
-            if ("Utente non registrato".equals(resp.getMessage())) {
-                return ResponseEntity.status(HttpStatus.NOT_FOUND).body(resp);
-            }
-
-            if ("Password errata".equals(resp.getMessage())) {
-                return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
-            }
-
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
+            return switch (resp.getMessage()) {
+                case "Utente non registrato" ->
+                        ResponseEntity.status(HttpStatus.NOT_FOUND).body(resp);
+                case "Password errata" ->
+                        ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
+                default ->
+                        ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(resp);
+            };
         }
 
         return ResponseEntity.ok(resp);

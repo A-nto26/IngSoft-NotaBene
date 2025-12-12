@@ -33,7 +33,12 @@ async function apiLock(noteId) {
         method: "POST"
     });
 
-    if (res.ok) return { ok: true };
+    if (res.ok) {
+    if (!window.__noteLocks) window.__noteLocks = {};
+    const idNorm = String(noteId).trim();
+window.__noteLocks[idNorm] = currentUser.trim().toLowerCase();
+    return { ok: true };
+    }
 
     if (res.status === 409) {
         const data = await res.json();
@@ -52,6 +57,13 @@ async function apiUnlock(noteId) {
     } catch (err) {
         console.warn("Unlock fallito:", err);
     }
+
+    if (window.__noteLocks) {
+    const idNorm = String(noteId).trim();
+    if (window.__noteLocks[idNorm]) {
+        delete window.__noteLocks[idNorm];
+    }
+}
 }
 
 async function apiRefresh(noteId) {
@@ -69,6 +81,8 @@ async function startLock(noteId) {
     const lock = await apiLock(noteId);
     if (!lock.ok) return false;
 
+    lockSeconds = 180;
+
     // snapshot iniziale per capire se la nota è cambiata
     initialSnapshot = {
         titolo: document.getElementById("titolo")?.value || "",
@@ -78,7 +92,8 @@ async function startLock(noteId) {
     };
 
     lockActive = true;
-    currentLockedNoteId = noteId;
+    currentLockedNoteId = String(noteId).trim();
+
 
     startCountdown(noteId);
 
@@ -206,7 +221,7 @@ async function autoSaveAndExit(noteId) {
         }
     }
 
-    await apiUnlock(noteId);
+    await apiUnlock(String(noteId).trim());
     stopLock();
 
     chiudiModal("noteModal");
