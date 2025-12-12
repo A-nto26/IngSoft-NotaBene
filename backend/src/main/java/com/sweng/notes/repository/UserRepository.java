@@ -1,5 +1,6 @@
 package com.sweng.notes.repository;
 
+import com.sweng.notes.logging.LoggerActions;
 import com.sweng.notes.model.Utente;
 import org.mapdb.*;
 import org.springframework.stereotype.Repository;
@@ -65,7 +66,12 @@ public class UserRepository {
     }
 
     private void commit() {
-        db.commit();
+        try {
+            db.commit();
+        } catch (Exception e) {
+            LoggerActions.log("USER_DB_COMMIT_FAIL", "system", Map.of("error", e.getMessage()));
+            throw e;
+        }
     }
 
     // ============================================================

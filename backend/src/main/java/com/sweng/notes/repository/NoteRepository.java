@@ -46,7 +46,6 @@ public class NoteRepository {
     @SuppressWarnings("unchecked")
     public NoteRepository() {
 
-        
         File dataDir = new File("data");
         if (!dataDir.exists()) {
             dataDir.mkdirs();
@@ -59,7 +58,6 @@ public class NoteRepository {
                 .transactionEnable()
                 .closeOnJvmShutdown()
                 .make();
-
 
         notes = db.hashMap("notes", Serializer.INTEGER, Serializer.JAVA)
                 .createOrOpen();
@@ -418,19 +416,28 @@ public class NoteRepository {
         return tryLock(id, username);
     }
 
-    /** Sblocca solo se owner o lock scaduto */
     public synchronized boolean unlockNote(int id, String username) {
-        Note before = notes.get(id);
-        if (before == null)
+        Note n = notes.get(id);
+        if (n == null)
             return false;
 
-        // usa la logica ufficiale di sblocco
-        unlockIfOwnerOrExpired(id, username);
+        String userNorm = username == null ? null : username.trim().toLowerCase();
+        String ownerNorm = n.getLockedBy() == null ? null : n.getLockedBy().trim().toLowerCase();
 
-        Note after = notes.get(id);
+        boolean expired = n.isLockExpired(LOCK_TIMEOUT_MINUTES);
+        boolean isOwner = (ownerNorm != null && ownerNorm.equals(userNorm));
 
-        // se lockedBy è null, sbloccata correttamente
-        return after.getLockedBy() == null;
+        // Se NON è owner e NON è scaduto, NON sbloccare e ritorna false
+        if (!expired && !isOwner) {
+            return false;
+        }
+
+        // Sblocco effettivo
+        n.clearLock();
+        notes.put(id, n);
+        commit();
+
+        return true;
     }
 
     /** Sblocco forzato — usato solo in casi particolari */

@@ -1,5 +1,6 @@
 package com.sweng.notes.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -13,7 +14,6 @@ import java.util.List;
  * - utentiCondivisi: elenco opzionale di utenti inizialmente aggiunti
  * - coloreCartella: colore selezionato dal frontend (opzionale)
  */
-
 public class CreateNoteRequest {
 
     private String titolo;
@@ -21,8 +21,7 @@ public class CreateNoteRequest {
     private String creatore;
     private String cartella;
     private String permesso;
-    private List<String> condivisaCon;
-    private List<String> utentiCondivisi;
+    private List<String> utentiCondivisi = new ArrayList<>();
     private String coloreCartella;
 
     // ===========================================
@@ -73,7 +72,7 @@ public class CreateNoteRequest {
     }
 
     public void setUtentiCondivisi(List<String> utentiCondivisi) {
-        this.utentiCondivisi = utentiCondivisi;
+        this.utentiCondivisi = (utentiCondivisi != null) ? utentiCondivisi : new ArrayList<>();
     }
 
     public String getColoreCartella() {
@@ -82,14 +81,6 @@ public class CreateNoteRequest {
 
     public void setColoreCartella(String coloreCartella) {
         this.coloreCartella = coloreCartella;
-    }
-
-    public List<String> getCondivisaCon() {
-        return condivisaCon;
-    }
-
-    public void setCondivisaCon(List<String> condivisaCon) {
-        this.condivisaCon = condivisaCon;
     }
 
 }

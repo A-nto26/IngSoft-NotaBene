@@ -71,7 +71,7 @@ function resetPickr() {
 
 // Inizializza Pickr
 function initFolderColorPicker(defaultColor = "#ffb347") {
-  // Se l'inizializzazione è temporaneamente disabilitata (es. anteprima)
+  
   if (!window.allowFolderPickr) return;
 
   resetPickr();
@@ -113,14 +113,12 @@ function showToast(type, message) {
   const toast = document.createElement("div");
   toast.className = `toast toast-${type}`;
 
-  // contenuto testuale (l’icona arriva dal CSS ::before)
   const text = document.createElement("span");
   text.textContent = message;
 
   toast.appendChild(text);
   container.appendChild(toast);
 
-  // auto-remove dopo 5s
   setTimeout(() => {
     toast.style.opacity = "0";
     setTimeout(() => toast.remove(), 400);
@@ -229,7 +227,8 @@ async function getAllUserNotes() {
       contenuto: n.contenuto || "",
       cartella: n.cartella || null,
       coloreCartella: n.coloreCartella || "#FFD700",
-      permesso: normalizzaPermesso(n.permesso),
+      permesso: normalizzaPermesso( typeof n.permesso === "object" && n.permesso !== null
+        ? n.permesso.tipo : n.permesso),
       creatore: normUser(n.creatore),
       condivisaCon: Array.isArray(n.condivisaCon)
           ? n.condivisaCon.map(u => normUser(u))
@@ -289,7 +288,7 @@ function renderUtentiCondivisi(lista) {
     const container = document.getElementById("utentiSelezionati");
     if (!container) return;
 
-    container.innerHTML = ""; // pulisci ma NON inserire testo normale
+    container.innerHTML = ""; 
 
     if (!lista || lista.length === 0) {
         container.innerHTML = `<span style="color:#777;">nessuno</span>`;
@@ -302,6 +301,55 @@ function renderUtentiCondivisi(lista) {
         pill.textContent = normUser(u);;
         container.appendChild(pill);
     });
+}
+
+// =====================================================
+// AGGIORNA STATO OPTION "PRIVATA" IN BASE AGLI UTENTI
+// =====================================================
+function aggiornaStatoOpzionePrivata() {
+    const select = document.getElementById("permesso");
+    if (!select) return;
+
+    const optPrivata = select.querySelector('option[value="privata"]');
+    if (!optPrivata) return;
+
+    const haUtenti = Array.isArray(utentiSelezionati) && utentiSelezionati.length > 0;
+
+    optPrivata.disabled = haUtenti;
+
+    // Se l’opzione è disabilitata ma selezionata, forziamo "lettura"
+    if (optPrivata.disabled && select.value === "privata") {
+        select.value = "lettura";
+        document.getElementById("shareSection").style.display = "block";
+    }
+}
+
+// =====================================================
+// APPLICA REGOLE PERMESSO (dinamiche)
+// =====================================================
+function applicaRegolePermesso(ruolo) {
+    if (!permessoSelect) return;
+
+    const select = permessoSelect;
+    const haUtenti = Array.isArray(utentiSelezionati) && utentiSelezionati.length > 0;
+
+    const optPrivata = select.querySelector('option[value="privata"]');
+
+   
+    if (optPrivata) {
+        optPrivata.disabled = haUtenti;
+    }
+
+    if (ruolo !== "autore") {
+        select.disabled = true;
+    } else {
+        select.disabled = false;
+    }
+
+ 
+    if (optPrivata && optPrivata.disabled && select.value === "privata") {
+        select.value = "lettura";
+    }
 }
 
 // =====================================================
@@ -330,37 +378,37 @@ async function caricaNote() {
   // -----------------------------------------------------
   // CARICO TUTTE LE NOTE DELL’UTENTE
   // -----------------------------------------------------
-const allNotes = await getAllUserNotes();
+  const allNotes = await getAllUserNotes();
+
+
+  // -----------------------------------------------------
+  //  NOTIFICA: nota eliminata dall'autore
+  // -----------------------------------------------------
+  const storedSharedNotes = JSON.parse(localStorage.getItem(`sharedNotes_${user}`) || "[]");
+
+  // Trova ID ancora presenti ora
+  const currentIds = allNotes.map(n => n.id);
+
+  // Cerca note che PRIMA esistevano e ORA no → eliminate
+  const removed = storedSharedNotes.filter(id => !currentIds.includes(id));
+
+  if (removed.length > 0) {
+      removed.forEach(async (id) => {
+          try {
+              // Recuperiamo l’ultimo titolo noto
+              const old = JSON.parse(localStorage.getItem(`noteInfo_${id}`) || "{}");
+
+                const titolo = old.titolo || "una nota";
+                const autore = old.creatore || "autore sconosciuto";
+
+                showToast("info", `🗑️ ${autore} ha eliminato la nota "${titolo}".`);
+          } catch (e) {}
+      });
+  }
 
 
 // -----------------------------------------------------
-//  NOTIFICA: nota eliminata dall'autore
-// -----------------------------------------------------
-const storedSharedNotes = JSON.parse(localStorage.getItem(`sharedNotes_${user}`) || "[]");
-
-// Trova ID ancora presenti ora
-const currentIds = allNotes.map(n => n.id);
-
-// Cerca note che PRIMA esistevano e ORA no → eliminate
-const removed = storedSharedNotes.filter(id => !currentIds.includes(id));
-
-if (removed.length > 0) {
-    removed.forEach(async (id) => {
-        try {
-            // Recuperiamo l’ultimo titolo noto
-            const old = JSON.parse(localStorage.getItem(`noteInfo_${id}`) || "{}");
-
-              const titolo = old.titolo || "una nota";
-              const autore = old.creatore || "autore sconosciuto";
-
-              showToast("info", `🗑️ ${autore} ha eliminato la nota "${titolo}".`);
-        } catch (e) {}
-    });
-}
-
-
-// -----------------------------------------------------
-// CASO A: UTENTE COMPLETAMENTE NUOVO (prima volta ever)
+// CASO A: UTENTE COMPLETAMENTE NUOVO 
 // -----------------------------------------------------
 if (!hasEverCreatedNote && allNotes.length === 0) {
 
@@ -529,9 +577,50 @@ if (!tutorialShown && isFirstOwnNote) {
     const permessoTipo = normalizzaPermesso(n.permesso);
     const versioneCorrente = n.versione || 1;
 
+    // =====================================================
+    //  RILEVA CAMBIO PERMESSO DA PARTE DELL’AUTORE
+    // =====================================================
+    if (!window._lastPermessi) window._lastPermessi = {};
+
+    const permessoNuovo = permessoTipo;
+    const permessoVecchio = window._lastPermessi[n.id];
+
+    // Se il permesso è cambiato rispetto alla dashboard precedente →
+    if (permessoVecchio && permessoVecchio !== permessoNuovo) {
+        showToast("info", "ℹ️ L'autore ha aggiornato i permessi della nota.");
+
+        // Aggiorno badge e classi della card (se esiste già nel DOM)
+        const existingCard = document.querySelector(`.note-card[data-id="${n.id}"]`);
+        if (existingCard) {
+
+            // Badge permesso
+            const badgeEl = existingCard.querySelector("p small");
+            if (badgeEl) {
+                badgeEl.textContent =
+                    permessoNuovo === "privata"
+                        ? "🔒 Privata"
+                        : permessoNuovo === "lettura"
+                        ? "👓 In lettura"
+                        : "🖊️ In scrittura";
+            }
+
+            // Colori bordo
+            existingCard.classList.remove("private-note", "shared-read", "shared-write");
+            if (permessoNuovo === "scrittura") {
+                existingCard.classList.add("shared-write");
+            } else if (permessoNuovo === "lettura") {
+                existingCard.classList.add("shared-read");
+            } else {
+                existingCard.classList.add("private-note");
+            }
+        }
+    }
+
+    // Salva stato attuale del permesso REALE per confronti futuri
+    window._lastPermessi[n.id] = permessoNuovo;
+
     // Registra la versione corrente della nota
     window._noteVersions[n.id] = n.versione;
-
 
     let badgePermesso = "🔒 Privata";
     if (permessoTipo.includes("scrittura")) badgePermesso = "🖊️ In scrittura";
@@ -545,15 +634,15 @@ if (!tutorialShown && isFirstOwnNote) {
     // ===============================
     let cardClass = "note-card";
 
-    // Scrittura → verde
+    // Scrittura: verde
     if (permessoTipo.includes("scrittura")) {
         cardClass += " shared-write";
 
-    // Lettura → azzurro
+    // Lettura: azzurro
     } else if (permessoTipo.includes("lettura")) {
         cardClass += " shared-read";
 
-    // Privata → rosso
+    // Privata: rosso
     } else {
         cardClass += " private-note";
     }
@@ -565,7 +654,7 @@ if (!tutorialShown && isFirstOwnNote) {
         n.coloreCartella ||
         "#ffb347";
 
-      // Badge versione
+    // Badge versione
     const badge = document.createElement("div");
     badge.className = "version-badge";
     badge.textContent = `v${versioneCorrente}`;
@@ -579,7 +668,8 @@ if (!tutorialShown && isFirstOwnNote) {
 
     content.innerHTML = `
         <h2>${n.titolo}</h2>
-        <p>${contenutoUltimo}</p>
+        <p class="note-content">${contenutoUltimo}</p>
+
 
         <p>
           <small>
@@ -791,16 +881,27 @@ try {
               n.cartella = fresh.cartella;
               n.coloreCartella = fresh.coloreCartella;
 
-              n.permesso = fresh.permesso;              
-              n.condivisaCon = fresh.condivisaCon;      
-              n.ruolo = fresh.ruolo;                    
+              // Normalizza permesso NoteView -> "privata" | "lettura" | "scrittura"
+              n.permesso = normalizzaPermesso(
+                  typeof fresh.permesso === "object" && fresh.permesso !== null
+                      ? fresh.permesso.tipo
+                      : fresh.permesso
+              );
+
+              // Aggiorna lista utenti
+              n.condivisaCon = Array.isArray(fresh.condivisaCon)
+                  ? fresh.condivisaCon.map(u => normUser(u))
+                  : [];
+
+              // Aggiorna ruolo
+              n.ruolo = fresh.ruolo;                   
 
               n.lastModifiedAt = fresh.lastModifiedAt;
               n.lastModifiedBy = fresh.lastModifiedBy;
               n.creatore = normUser(fresh.creatore);
               n.autoreUsername = normUser(fresh.autoreUsername || fresh.creatore);
               n.versione = fresh.versione;
-              n.lockedBy = normUser(fresh.lockedBy);
+              n.lockedBy = fresh.lockedBy ? normUser(fresh.lockedBy) : null;
 
               window._noteVersions[n.id] = fresh.versione;
 
@@ -831,27 +932,25 @@ try {
     noteList.appendChild(card);
   });
 
-   // -----------------------------------------------------
-  //  Salvataggio stato note condivise correnti
- // -----------------------------------------------------
+      // -----------------------------------------------------
+      //  Salvataggio stato note condivise correnti
+      // -----------------------------------------------------
+      // Salva solo gli ID delle note condivise attuali
+      const visibleShared = allNotes
+          .filter(n => n.creatore !== normUser(user))
+          .map(n => n.id);
 
-// Salva solo gli ID delle note condivise attuali
-const visibleShared = allNotes
-    .filter(n => n.creatore.toLowerCase() !== user.toLowerCase())
-    .map(n => n.id);
+      localStorage.setItem(`sharedNotes_${user}`, JSON.stringify(visibleShared));
 
-localStorage.setItem(`sharedNotes_${user}`, JSON.stringify(visibleShared));
+      // Salva i titoli per i messaggi successivi
+      allNotes.forEach(n => {
+          const autore = n.creatore || n.autoreUsername || "autore sconosciuto";
 
-// Salva i titoli per i messaggi successivi
-allNotes.forEach(n => {
-    const autore = n.creatore || n.autoreUsername || "autore sconosciuto";
-
-    localStorage.setItem(`noteInfo_${n.id}`, JSON.stringify({
-    titolo: n.titolo,
-    creatore: n.creatore
-}));
-});
-
+          localStorage.setItem(`noteInfo_${n.id}`, JSON.stringify({
+          titolo: n.titolo,
+          creatore: n.creatore
+      }));
+      });
 
 }
 
@@ -886,79 +985,87 @@ function applyFolderColor(startColor, enablePicker = false) {
         const btn = document.getElementById("folderColorBtn");
         const input = document.getElementById("folderColorInput");
 
-        if (!btn || !input) return; // HTML non ancora pronto evita errori
+        if (!btn || !input) return;
 
-        // Imposta il colore visivamente
         btn.style.backgroundColor = startColor;
         input.value = startColor;
 
-        // Usa classe CSS pulita per lo stato preview (gestita in folder-icons.css)
-        btn.classList.add("folder-preview");
+        // Controlla anteprima vs editing
+        if (!enablePicker) {
+            btn.classList.add("folder-preview");
+            btn.style.pointerEvents = "none";
+            window.allowFolderPickr = false;
+            resetPickr();
+        } else {
+            btn.classList.remove("folder-preview");
+            btn.style.pointerEvents = "auto";
+            window.allowFolderPickr = true;
+            resetPickr();
+            initFolderColorPicker(startColor);
+        }
 
-    // Imposta la flag globale che abilita l'inizializzazione del picker
-    window.allowFolderPickr = !!enablePicker;
-
-    // Rimuovi eventuale Pickr precedente
-    resetPickr();
-
-    if (enablePicker) {
-      // Abilita la modifica colore
-      initFolderColorPicker(startColor);
-      btn.classList.remove("folder-preview");
-      btn.style.pointerEvents = "auto";
-    } else {
-      // SOLO VISUALIZZAZIONE (Anteprima)
-      btn.classList.add("folder-preview");
-      btn.style.pointerEvents = "none";
-    }
-    }, 80); // Garantisce che il modal sia renderizzato
+    }, 80);
 }
 
-// Helper globale: aggiorna lo stato di lock di una singola card nella dashboard
+
 async function refreshCardLock(noteId) {
-  try {
-    const res = await fetch(`${API_NOTES}/${noteId}/lock`);
-    if (!res.ok) return;
-    const data = await res.json();
-    const lockedBy = data.lockedBy || null;
-
-    // Mantieni cache globale aggiornata
-    window.__noteLocks = window.__noteLocks || {};
-    if (lockedBy) window.__noteLocks[noteId] = lockedBy;
-    else delete window.__noteLocks[noteId];
-
-    // Aggiorna solo la card relativa
     const card = document.querySelector(`.note-card[data-id="${noteId}"]`);
     if (!card) return;
-    const lockEl = card.querySelector('.lock-indicator');
-    if (lockedBy) {
-      const text = lockedBy === user ? '🟢 In modifica da te' : '🔴 In modifica da ' + lockedBy;
-      if (lockEl) {
-        lockEl.classList.remove('green');
-        lockEl.innerHTML = text;
-      } else {
-        const p = document.createElement('p');
-        p.className = 'lock-indicator';
-        p.innerHTML = text;
-        const content = card.querySelector('.card-content') || card;
-        content.appendChild(p);
-      }
-    } else {
-      if (lockEl) {
-        lockEl.classList.add('green');
-        lockEl.innerHTML = '🟢 Libera';
-      } else {
-        const p = document.createElement('p');
-        p.className = 'lock-indicator green';
-        p.innerHTML = '🟢 Libera';
-        const content = card.querySelector('.card-content') || card;
-        content.appendChild(p);
-      }
+
+    let lockEl = card.querySelector(".lock-indicator");
+
+    try {
+        const rawLockedBy = window.__noteLocks?.[noteId] || null;
+
+        const lockedBy = rawLockedBy
+            ? rawLockedBy.trim().toLowerCase()
+            : null;
+
+        const userNorm = user.trim().toLowerCase();
+
+        // ==============================
+        // CASE 1- NOTA BLOCCATA
+        // ==============================
+        if (lockedBy) {
+            const text =
+                lockedBy === userNorm
+                    ? "🟢 In modifica da te"
+                    : `🔴 In modifica da ${lockedBy}`;
+
+            if (!lockEl) {
+                lockEl = document.createElement("p");
+                lockEl.className = "lock-indicator";
+                card.querySelector(".card-content").appendChild(lockEl);
+            }
+
+            lockEl.textContent = text;
+
+            card.classList.remove("locked-free");
+            card.classList.add("locked-active");
+            return;
+        }
+
+        // ==============================
+        // CASE 2 - NOTA LIBERA
+        // ==============================
+        if (lockEl) {
+            lockEl.textContent = "🟢 Libera";
+            lockEl.classList.add("green");
+        } else {
+            lockEl = document.createElement("p");
+            lockEl.className = "lock-indicator green";
+            lockEl.textContent = "🟢 Libera";
+            card.querySelector(".card-content").appendChild(lockEl);
+        }
+
+        card.classList.remove("locked-active");
+        card.classList.add("locked-free");
+
+    } catch (e) {
+        console.warn("Errore refreshCardLock:", e);
     }
-  } catch (e) {
-    
-  }
 }
+
 
 
 // =====================================================
@@ -971,7 +1078,7 @@ const cancelNoteBtn = document.getElementById("cancelNoteBtn");
 const saveNoteBtn = document.getElementById("saveNoteBtn");
 const shareNoteBtn = document.getElementById("shareNoteBtn");
 const utentiSelezionatiDiv = document.getElementById("utentiSelezionati");
-const permessoSelect = document.getElementById("permesso");
+let permessoSelect = document.getElementById("permesso");
 const shareSection = document.getElementById("shareSection");
 const modalAutore = document.getElementById("modalAutore");
 
@@ -1001,39 +1108,36 @@ if (cancelNoteBtn) {
   cancelNoteBtn.addEventListener("click", () => chiudiModal("noteModal"));
 }
 
+// Listener globale DISATTIVATO in modalità modifica
 if (permessoSelect) {
   permessoSelect.addEventListener("change", () => {
 
-    const valore = permessoSelect.value;
+    // Se siamo in MODIFICA,  NON toccare nulla
+    if (editingNoteId) {
+        return; // evita interferenze della logica globale
+    }
 
-    // Se nota in modifica NON resettare le pillole
-    const evitaReset = modalInitialized;
+    // (solo creazione nota)
+    const nuovoValore = permessoSelect.value;
 
-    if (valore === "lettura" || valore === "scrittura") {
+    if (nuovoValore === "lettura" || nuovoValore === "scrittura") {
         shareSection.style.display = "block";
-
-        // NON resettare le pillole se modal è già iniziata
-        if (!evitaReset) {
-            utentiSelezionati = [];
-            renderUtentiCondivisi([]);
-        }
+        utentiSelezionati = [];
+        renderUtentiCondivisi([]);
     } else {
         shareSection.style.display = "none";
-
-        if (!evitaReset) {
-            utentiSelezionati = [];
-            renderUtentiCondivisi([]);
-        }
+        utentiSelezionati = [];
+        renderUtentiCondivisi([]);
     }
-});
+  });
 }
+
 
 function resetShareButton() {
     shareNoteBtn.disabled = false;
     shareNoteBtn.style.pointerEvents = "auto";
-    shareNoteBtn.style.display = "inline-block";
     shareNoteBtn.classList.remove("disabled-preview");
-    shareNoteBtn.onclick = null;  // rimuove blocchi residui
+        shareNoteBtn.onclick = null;
 }
 
 function apriModalCrea() {
@@ -1045,11 +1149,12 @@ function apriModalCrea() {
     // Reset del bottone utenti
     shareNoteBtn.disabled = false;
     shareNoteBtn.classList.remove("disabled-preview");
-    shareNoteBtn.style.display = "inline-block";
+    shareNoteBtn.style.display = "none";
     shareNoteBtn.onclick = null;
 
     editingNoteId = null;
     utentiSelezionati = [];
+    modal.dataset.ruoloCorrente = "autore";   
 
     document.querySelector("#duplicateBtn")?.remove();
     document.querySelector("#leaveShareBtn")?.remove();   
@@ -1065,8 +1170,12 @@ function apriModalCrea() {
     utentiSelezionati = [];
     renderUtentiCondivisi(utentiSelezionati);
 
-    // Nascondi se privato
-    shareSection.style.display = "none";
+    // MOSTRA SEZIONE CONDIVISIONE SE PERMESSO È "SCRITTURA" O "LETTURA"
+    if (permessoSelect.value === "privata") {
+        shareSection.style.display = "none";
+    } else {
+        shareSection.style.display = "flex";
+    }
 
     // Applica stile unificato al pulsante UTENTI
     shareNoteBtn.className = "share-users-btn";
@@ -1103,7 +1212,11 @@ function apriModalCrea() {
     if (window.folderPickr) {
         window.folderPickr.setColor(defaultColor);
     }
+
+    aggiornaStatoOpzionePrivata();
 }
+
+
 
 async function apriModalAnteprima(
     id,
@@ -1120,11 +1233,16 @@ async function apriModalAnteprima(
     coloreCartella = null,
     autoreUsername = null
 ) {
-    editingNoteId = id;
+
+    modal.dataset.ruoloCorrente = ruolo || "lettura";  
+    editingNoteId = null;
+    lockActive = false;
+    currentLockedNoteId = null;
     modalInitialized = false;
     const versioneCorrente = window._noteVersions[id];
-    window._versionLoadedAtOpen[id] = versioneCorrente;
-    const lockedByGlobal = window.__noteLocks?.[id] || null;
+    const rawLockedBy = window.__noteLocks?.[id] || null;
+    const lockedByGlobal = rawLockedBy ? rawLockedBy.trim().toLowerCase() : null;
+    const userNorm = user.trim().toLowerCase();
 
     // ----------------------------------------------------
     //  CONTROLLO VERSIONE AGGIORNATA (anche in lettura)
@@ -1141,18 +1259,14 @@ async function apriModalAnteprima(
                 titoloVal = notaServer.titolo;
                 contenutoVal = notaServer.contenuto;
                 cartellaVal = notaServer.cartella;
+                window._noteVersions[id] = versioneServer;
             }
         }
     } catch (e) {
         console.warn("Errore controllo versione in anteprima:", e);
     }
     
-    // RESET BOTTONE UTENTI (prima di metterlo disabled)
-  
-    resetShareButton();
-
     //  DISABILITA IL BOTTONE UTENTI IN ANTEPRIMA
-  
     shareNoteBtn.disabled = true;
     shareNoteBtn.classList.add("disabled-preview");
 
@@ -1163,8 +1277,26 @@ async function apriModalAnteprima(
         return false;
     };
 
-    // 2. DISABILITA PERMESSO
-    permessoSelect.disabled = true;
+    // =====================================================
+    // PERMESSO — sempre disabilitato in ANTEPRIMA
+    // ma deve mostrare correttamente il valore,
+    // e "privata" deve essere disabilitata se nota condivisa
+    // =====================================================
+    const perm = normalizzaPermesso(permessoTipo);
+    const isPrivata = perm === "privata";
+
+
+    // Assicura che il valore sia valido
+    const validValues = ["privata", "lettura", "scrittura"];
+    // Imposta il valore prima di validarlo
+    permessoSelect.value = perm;
+    // Se non valido → forzalo a "privata"
+    if (!validValues.includes(perm)) permessoSelect.value = "privata";
+
+    const haUtentiAttuali = Array.isArray(utentiCondivisi) && utentiCondivisi.length > 0;
+
+    const optPrivata = permessoSelect.querySelector('option[value="privata"]');
+    if (optPrivata) optPrivata.disabled = haUtentiAttuali;
 
     // 3. RESET SEZIONE UTENTI
     utentiSelezionatiDiv.innerHTML = "";
@@ -1174,20 +1306,18 @@ async function apriModalAnteprima(
     document.querySelector("#leaveShareBtn")?.remove();
     document.querySelector(".note-footer")?.remove();
 
-    // 5. POPOLA CAMPi
+    const creaCopiaBtn = document.getElementById("creaCopiaBtn");  
+    if (creaCopiaBtn) {
+      creaCopiaBtn.style.display = "none"; 
+    }
+
+    //  POPOLA CAMPi
     titolo.value = titoloVal;
     contenuto.value = contenutoVal;
     cartella.value = cartellaVal || "";
 
-    // DEBUG — verifica cosa arriva alla modale
-    //console.log("DEBUG ANTEPRIMA:", {
-    //   id,
-    //   ruolo,
-    //   autoreUsername,
-    // utentiCondivisiRicevuti: utentiCondivisi  });
 
-
-    // 5B. MOSTRA CAMPO AUTORE
+    //  MOSTRA CAMPO AUTORE
     if (modalAutore) {
         // Usa "creatore" come autore principale
         const autoreVisibile = autoreUsername || creatore || "autore sconosciuto";
@@ -1197,12 +1327,17 @@ async function apriModalAnteprima(
         modalAutore.innerHTML = `Autore: <span class="author-pill">${autoreNorm}</span>`;
       }
 
-    const perm = normalizzaPermesso(permessoTipo);
-
+      // Mostra la data di creazione subito dopo l'autore
+      const modalCreatedAt = document.getElementById("modalCreatedAt");
+      if (modalCreatedAt) {
+          modalCreatedAt.style.display = "block";
+          modalCreatedAt.innerHTML = `Creata il: <span id="createdAtDate">${new Date(createdAt).toLocaleString("it-IT")}</span>`;
+      }
     // =============================================
     // NOTA LOCKATA DA ALTRO
     // =============================================
-    if (perm === "scrittura" && lockedByGlobal && lockedByGlobal !== user) {
+    if (perm === "scrittura" && lockedByGlobal && lockedByGlobal !== userNorm) {
+
       // blocca input
       titolo.disabled = true;
       contenuto.disabled = true;
@@ -1235,54 +1370,47 @@ async function apriModalAnteprima(
     contenuto.disabled = true;
     cartella.disabled = true;
 
-    // Bottoni
+    // ----------------------------------------------------
+    //  BOTTONI + TITOLO MODALE (ANTEPRIMA)
+    // ----------------------------------------------------
     saveNoteBtn.style.display = "none";
     cancelNoteBtn.style.display = "inline-block";
     modalTitle.textContent = "👁️ Anteprima nota";
 
-    // ----------------------------------------------------
-    // GESTIONE AREA CONDIVISIONE
-    // ----------------------------------------------------
-    const p = normalizzaPermesso(permessoTipo);
-    const isPrivata = p === "privata";
-    // Mostra sempre il permesso, ma disabilitato
-    // Normalizza il permesso e imposta il valore corretto nel select
+    // Blocca completamente il menu permesso
     if (permessoSelect) {
-    const permNorm = normalizzaPermesso(permessoTipo); // → "privata" | "lettura" | "scrittura"
+        permessoSelect.disabled = true;
+        permessoSelect.style.pointerEvents = "none";
+        permessoSelect.classList.add("disabled-preview");
+    }
 
-    // Assicura che il valore esista tra le option
-    const validValues = ["privata", "lettura", "scrittura"];
-    permessoSelect.value = validValues.includes(permNorm) ? permNorm : "privata";
+// ----------------------------------------------------
+//  AREA CONDIVISIONE — PREPARAZIONE LISTA UTENTI
+// ----------------------------------------------------
 
-    permessoSelect.disabled = true;
-}
-    //area condivisone
-    utentiSelezionati = [...(utentiCondivisi || [])];
-    utentiSelezionatiDiv.innerHTML = "";
+// Cloniamo SEMPRE la lista originale dal backend
+utentiSelezionati = [...(utentiCondivisi || [])];
+utentiSelezionatiDiv.innerHTML = ""; // pulizia
 
-    // Se la nota è privata non far vedere nulla
+// Caso nota privata → nessuna sezione
 if (isPrivata) {
     shareSection.style.display = "none";
 } else {
     shareSection.style.display = "flex";
 
-    // AUTORE vede tutti gli utenti
+    // AUTORE, vede TUTTI gli utenti condivisi
     if (ruolo === "autore") {
 
         if (utentiSelezionati.length === 0) {
             utentiSelezionatiDiv.innerHTML =
                 "<p style='color:#666; margin-top:6px;'>Nessun utente con cui è stata condivisa.</p>";
         } else {
-            utentiSelezionati.forEach(u => {
-                const pill = document.createElement("span");
-                pill.className = "user-pill-inline";
-                pill.textContent = normUser(u);
-                utentiSelezionatiDiv.appendChild(pill);
-            });
+            // Usa direttamente renderUtentiCondivisi
+            renderUtentiCondivisi(utentiSelezionati);
         }
 
-    }
-    // UTENTE CONDIVISO vede tutti gli utenti tranne: se stesso, l’autore
+    } 
+    //  UTENTE CONDIVISO, vede tutti tranne sé stesso + autore
     else {
 
         const utentiDaMostrare = utentiSelezionati.filter(u =>
@@ -1293,15 +1421,10 @@ if (isPrivata) {
             utentiSelezionatiDiv.innerHTML =
                 "<p style='color:#666; margin-top:6px;'>Non ci sono altri utenti con accesso.</p>";
         } else {
-            utentiDaMostrare.forEach(u => {
-                const pill = document.createElement("span");
-                pill.className = "user-pill-inline";
-                pill.textContent = normUser(u);
-                utentiSelezionatiDiv.appendChild(pill);
-            });
+            renderUtentiCondivisi(utentiDaMostrare);
         }
     }
-};
+}
 
     // ----------------------------------------------------
     //  COLORE CARTELLA (SOLO VISUALIZZAZIONE)
@@ -1386,12 +1509,12 @@ if (isPrivata) {
     // ----------------------------------------------------
     //  PREPARA LA MODALE (rimuovi aria-hidden PRIMA)
     // ----------------------------------------------------
-    modal.style.display = "flex";   // renderizza la modale
-    modal.inert = false;            // rendila attiva
-    modal.removeAttribute("aria-hidden"); // ora è visibile per assistive tech
+    modal.style.display = "flex";   
+    modal.inert = false;           
+    modal.removeAttribute("aria-hidden"); 
 
     // ----------------------------------------------------
-    // 12. SOLO ORA GESTIAMO IL FOCUS SICURO
+    // GESTIAMO IL FOCUS SICURO
     // ----------------------------------------------------
     modal.setAttribute("tabindex", "-1");
     setTimeout(() => modal.focus(), 0);
@@ -1417,12 +1540,15 @@ async function apriModalModifica(
     coloreCartella = null,
     autoreUsername = null
 ) {
+
+    modal.dataset.ruoloCorrente = ruolo || "autore";
     editingNoteId = id;
 
      const versioneCorrente = window._noteVersions[id];
      window._versionLoadedAtOpen[id] = versioneCorrente;
 
     const locked = await startLock(id);
+    const userNorm = user.trim().toLowerCase();
     if (!locked) {
       showToast("error", "🔒 Nota in modifica da un altro utente.");
       // aggiorna solo la card interessata così il bollino non resta verde
@@ -1460,27 +1586,31 @@ async function apriModalModifica(
           const versioneServer = notaServer.versione;
 
           if (versioneServer !== versioneCorrente) {
-              showToast(
-                  "info",
-                  "🔄 La nota è stata aggiornata da un altro utente. È stata caricata l'ultima versione."
-              );
+    showToast("info", "🔄 La nota è stata aggiornata da un altro utente. È stata caricata l'ultima versione.");
 
-              // Aggiorna i valori che useremo nel modal
-              titoloVal        = notaServer.titolo;
-              contenutoVal     = notaServer.contenuto;
-              cartellaVal      = notaServer.cartella;
-              utentiCondivisi  = notaServer.utentiCondivisi || [];
-              permessoTipo     = notaServer.permesso?.tipo || permessoTipo;
-              lastModifiedAt   = notaServer.lastModifiedAt || lastModifiedAt;
-              lastModifiedBy   = notaServer.lastModifiedBy || lastModifiedBy;
-              createdAt        = notaServer.createdAt || createdAt;
-              creatore         = notaServer.creatore || creatore;
-              autoreUsername = notaServer.autoreUsername || notaServer.creatore || autoreUsername;
+    // Aggiorniamo SOLO i campi che generano versioni
+    titoloVal        = notaServer.titolo;
+    contenutoVal     = notaServer.contenuto;
+    cartellaVal      = notaServer.cartella;
+    utentiCondivisi  = notaServer.utentiCondivisi || [];
 
-              // Aggiorna anche il tracking versione globale
-              window._noteVersions[id] = versioneServer;
-              window._versionLoadedAtOpen[id] = versioneServer;
-          }
+    const pServer = notaServer.permesso?.tipo?.toLowerCase() || null;
+    const pLocal  = (permessoTipo || "").toLowerCase();
+
+    if (pServer && pServer !== pLocal) {
+        permessoTipo = pServer;
+    }
+
+    lastModifiedAt   = notaServer.lastModifiedAt || lastModifiedAt;
+    lastModifiedBy   = notaServer.lastModifiedBy || lastModifiedBy;
+    createdAt        = notaServer.createdAt || createdAt;
+    creatore         = notaServer.creatore || creatore;
+    autoreUsername   = notaServer.autoreUsername || notaServer.creatore || autoreUsername;
+
+    // Aggiorna la versione caricata
+    window._noteVersions[id] = versioneServer;
+    window._versionLoadedAtOpen[id] = versioneServer;
+}
       }
   } catch (e) {
       console.warn("Errore controllo versione in modifica:", e);
@@ -1490,10 +1620,6 @@ async function apriModalModifica(
     // RESET BOTTONE UTENTI (importante se si arriva da anteprima)
     // ----------------------------------------------------
     resetShareButton();
-
-    // Reset UI utenti
-    document.getElementById("utentiSelezionati").innerHTML = "";
-
 
     // =====================================================
     // PULIZIA MODALE
@@ -1509,7 +1635,35 @@ async function apriModalModifica(
     contenuto.value = contenutoVal;
     cartella.value = cartellaVal || "";
 
-    // 5B - MOSTRA AUTORE SOLO SE NON SEI TU
+
+    // ===============================
+    //  UTENTI CONDIVISI — CORRETTO
+    // ===============================
+
+    // Cloniamo SEMPRE la lista reale della nota
+    utentiSelezionati = [...(utentiCondivisi || [])];
+
+    // Pulizia
+    utentiSelezionatiDiv.innerHTML = "";
+
+    // Render UNA sola volta
+    renderUtentiCondivisi(utentiSelezionati);
+    // Se la nota NON è privata, apri la sezione utenti
+    if (permessoSelect.value !== "privata") {
+        shareSection.style.display = "flex";
+
+        // Se ci sono utenti, mostra pulsante Condividi
+        if (utentiSelezionati.length > 0) {
+            shareNoteBtn.style.display = "inline-block";
+        }
+    } else {
+        shareSection.style.display = "none";
+    }
+
+    // Aggiorna lo stato dell'opzione "privata"
+    aggiornaStatoOpzionePrivata();
+
+    // MOSTRA AUTORE SOLO SE NON SEI TU
     if (modalAutore) {
         if (ruolo === "autore") {
             // L’autore NON deve vedere il campo autore
@@ -1523,10 +1677,65 @@ async function apriModalModifica(
         }
     }
 
-    // PERMESSO NON EDITABILE
-    const p = normalizzaPermesso(permessoTipo);
-    permessoSelect.value = p;
+// =====================================================
+// PERMESSO — caricamento corretto e comportamento sicuro
+// =====================================================
+
+//  Normalizza il permesso reale ricevuto dal backend
+const p = normalizzaPermesso(permessoTipo);
+
+//  Ricrea il select per eliminare eventuali vecchi listener
+let currentSelect = document.getElementById("permesso");
+if (!currentSelect) {
+    console.warn("⚠️ permessoSelect non trovato nel DOM");
+} else {
+    const clone = currentSelect.cloneNode(true);
+    currentSelect.parentNode.replaceChild(clone, currentSelect);
+    permessoSelect = clone;
+    window.permessoSelect = clone;
+}
+
+//  Imposta ESATTAMENTE il permesso reale
+permessoSelect.value = p;
+
+//  Assicura che il valore sia valido (fallback sicuro)
+const validValues = ["privata", "lettura", "scrittura"];
+if (!validValues.includes(p)) {
+    permessoSelect.value = "privata";
+}
+
+// Gestione permesso in base al ruolo
+if (ruolo === "autore") {
+    permessoSelect.disabled = false;
+
+    const optPrivata = permessoSelect.querySelector('option[value="privata"]');
+    if (optPrivata) optPrivata.disabled = utentiSelezionati.length > 0;
+
+    permessoSelect.onchange = () => {
+        const nuovo = permessoSelect.value;
+
+        // Non puoi tornare privata se già condivisa
+        if (nuovo === "privata" && utentiSelezionati.length > 0) {
+            showToast("error", "❌ Non puoi impostare 'Privata' mentre la nota è condivisa.");
+            permessoSelect.value = p;
+            return;
+        }
+
+        // Sezione utenti visibile o no
+        if (nuovo === "privata") {
+            shareSection.style.display = "none";
+            utentiSelezionati = [];
+            renderUtentiCondivisi([]);
+        } else {
+            shareSection.style.display = "flex";
+            renderUtentiCondivisi(utentiSelezionati);
+        }
+    };
+
+} else {
     permessoSelect.disabled = true;
+    permessoSelect.style.pointerEvents = "none";
+}
 
     // =====================================================
     // BANNER LOCK
@@ -1606,7 +1815,7 @@ async function apriModalModifica(
         shareNoteBtn.classList.add("disabled-preview");
         shareNoteBtn.style.pointerEvents = "none";
         
-        // optional: toast se cliccato
+      
         shareNoteBtn.onclick = (e) => {
             e.stopPropagation();
             showToast("error", "Solo l'autore può gestire gli utenti condivisi.");
@@ -1617,7 +1826,7 @@ async function apriModalModifica(
     // =====================================================
     // SEZIONE CONDIVISIONE + PULSANTE UTENTI
     // =====================================================
-    const isPrivata = p === "privata";
+    const isPrivata = permessoSelect.value === "privata";
     shareSection.style.display = isPrivata ? "none" : "flex";
 
     if (!isPrivata) {
@@ -1633,7 +1842,6 @@ async function apriModalModifica(
     // =====================================================
     const usersContainer = document.getElementById("utentiSelezionati");
     usersContainer.innerHTML = "";
-    utentiSelezionati = [...(utentiCondivisi || [])];
 
     if (!isPrivata) {
       if (utentiSelezionati.length === 0) {
@@ -1647,6 +1855,9 @@ async function apriModalModifica(
         });
       }
     }
+
+    // Allinea il menu permessi allo stato attuale della condivisione
+    aggiornaStatoOpzionePrivata();
 
     // =====================================================
     // FOOTER INFO
@@ -1675,83 +1886,125 @@ async function apriModalModifica(
     // Focus sicuro (evita warning aria-hidden)
     modal.setAttribute("tabindex", "-1");
     setTimeout(() => modal.focus(), 0);
-   }
+}
 
 
 async function chiudiModal(id) {
-  const modalEl = document.getElementById(id);
-  if (!modalEl) return;
+    const modalEl = document.getElementById(id);
+    if (!modalEl) return;
 
-  document.activeElement?.blur();
+    document.activeElement?.blur();
 
-  modalEl.style.display = "none";
-  modalEl.setAttribute("aria-hidden", "true");
-  modalEl.inert = true;
-  modalInitialized = false;
+    modalEl.style.display = "none";
+    modalEl.setAttribute("aria-hidden", "true");
+    modalEl.inert = true;
+    modalInitialized = false;
 
-  if (id === "noteModal") {
+    // =====================================================
+    //   SE È LA MODALE DELLE NOTE
+    // =====================================================
+    if (id === "noteModal") {
 
-    // Ferma timer banner lock
-    if (window.lockElapsedTimer) {
-      clearInterval(window.lockElapsedTimer);
-      window.lockElapsedTimer = null;
+        // Stop timer UI banner lock
+        if (window.lockElapsedTimer) {
+            clearInterval(window.lockElapsedTimer);
+            window.lockElapsedTimer = null;
+        }
+
+        // Stop lock system (stopCountdown + toast cleanup)
+        if (typeof stopLock === "function") {
+            stopLock();
+        }
+
+        // Rilascia correttamente il lock quando si chiude la modale
+        let noteToUnlock = currentLockedNoteId || editingNoteId || null;  
+
+if (noteToUnlock) {
+    try {
+        // Chiama l'API di unlock se disponibile (non blocca se manca)
+        if (typeof apiUnlock === "function") {
+            await apiUnlock(noteToUnlock);
+        }
+
+        // Rimuovi dalla cache locale (gestisci chiavi sia stringa che numero)
+        if (window.__noteLocks) {
+            const idStr = String(noteToUnlock).trim();
+            if (window.__noteLocks[idStr]) delete window.__noteLocks[idStr];
+            const idNum = Number(idStr);
+            if (!Number.isNaN(idNum) && window.__noteLocks[idNum]) delete window.__noteLocks[idNum];
+        }
+    } catch (e) {
+        console.warn("Errore unlock:", e);
     }
 
-    // Ferma lock-system
-    if (typeof stopLock === "function") {
-      stopLock();
+    // Forza un refresh della card interessata per aggiornare il badge UI
+    try {
+        await refreshCardLock(noteToUnlock);
+    } catch (e) {
+        console.warn("Errore refreshCardLock:", e);
     }
-
-    // Sblocca la nota SOLO se era realmente lockata dal frontend
-    if (
-      typeof apiUnlock === "function" &&
-      lockActive &&
-      currentLockedNoteId === editingNoteId
-    ) {
-      await apiUnlock(editingNoteId);
-    }
-
-    // Reset lock vars
-    lockActive = false;
-    currentLockedNoteId = null;
-
-    // ===  RIPRISTINO STATO ORIGINALE NOTA (solo se non salvata) ===
-    if (editingNoteId != null && window._originalNoteSnapshot && window._lastOpenedNote) {
-      const snap = window._originalNoteSnapshot;
-      const nota = window._lastOpenedNote;
-
-      nota.titolo = snap.titolo;
-      nota.contenuto = snap.contenuto;
-      nota.cartella = snap.cartella;
-      nota.coloreCartella = snap.coloreCartella;
-      nota.lastModifiedAt = snap.lastModifiedAt;
-      nota.lastModifiedBy = snap.lastModifiedBy;
-    }
-
-    // Reset ID nota in editing
-    editingNoteId = null;
-
-    // Reset banner lock UI
-    const lockBanner = document.getElementById("lockBanner");
-    const lockUserSpan = document.getElementById("lockUser");
-    const lockTimeSpan = document.getElementById("lockTime");
-
-    if (lockBanner) lockBanner.style.display = "none";
-    if (lockUserSpan) lockUserSpan.textContent = "";
-    if (lockTimeSpan) lockTimeSpan.textContent = "";
-
-    // Reset info autore
-    const modalAutore = document.getElementById("modalAutore");
-    if (modalAutore) {
-      modalAutore.style.display = "none";
-      modalAutore.textContent = "";
-    }
-
-    // Reset snapshot
-    window._originalNoteSnapshot = null;
-    window._lastOpenedNote = null;
-  }
 }
+
+
+lockActive = false;
+currentLockedNoteId = null;
+
+
+        // Ripristino snapshot solo SE non salvata
+        if (
+            editingNoteId != null &&
+            window._originalNoteSnapshot &&
+            window._lastOpenedNote &&
+            !window._wasNoteSaved
+        ) {
+            const snap = window._originalNoteSnapshot;
+            const nota = window._lastOpenedNote;
+
+            nota.titolo          = snap.titolo;
+            nota.contenuto       = snap.contenuto;
+            nota.cartella        = snap.cartella;
+            nota.coloreCartella  = snap.coloreCartella;
+            nota.lastModifiedAt  = snap.lastModifiedAt;
+            nota.lastModifiedBy  = snap.lastModifiedBy;
+        }
+
+        //  Reset global state
+        editingNoteId = null;
+        window._originalNoteSnapshot = null;
+        window._lastOpenedNote = null;
+        window._wasNoteSaved = false;
+
+        //  Ripristina permessoSelect (senza forzare valori)
+        if (permessoSelect) {
+            permessoSelect.disabled = false;
+            permessoSelect.style.pointerEvents = "";
+            permessoSelect.classList.remove("disabled-preview");
+            permessoSelect.classList.remove("disabled");
+        }
+
+        //  Nascondi sezione condivisione SOLO a livello UI
+        if (shareSection) {
+            shareSection.style.display = "none";
+        }
+
+        //  Reset banner lock
+        const lockBanner = document.getElementById("lockBanner");
+        const lockUserSpan = document.getElementById("lockUser");
+        const lockTimeSpan = document.getElementById("lockTime");
+
+        if (lockBanner) lockBanner.style.display = "none";
+        if (lockUserSpan) lockUserSpan.textContent = "";
+        if (lockTimeSpan) lockTimeSpan.textContent = "";
+
+        //  Reset autore UI
+        const modalAutore = document.getElementById("modalAutore");
+        if (modalAutore) {
+            modalAutore.style.display = "none";
+            modalAutore.textContent = "";
+        }
+    }
+}
+
 
 
 // =====================================================
@@ -1760,22 +2013,20 @@ async function chiudiModal(id) {
 function chiudiShareModal() {
     const modal = document.getElementById("shareModal");
     if (!modal) return;
-
-    // Sposta focus via, evita attivazioni involontarie
+    
     document.activeElement?.blur();
-
-    // Chiudi davvero il modal utenti
+    
     modal.style.display = "none";
     modal.setAttribute("aria-hidden", "true");
     modal.inert = true;
 
-    // RIATTIVA il modal principale delle note  
+    aggiornaStatoOpzionePrivata();
+     
     const noteModal = document.getElementById("noteModal");
     if (noteModal) {
         noteModal.inert = false;
         noteModal.removeAttribute("aria-hidden");
 
-        // Rimettere il focus SUL MODAL DELLA NOTA, non su elementi interni
         noteModal.setAttribute("tabindex", "-1");
         setTimeout(() => noteModal.focus(), 0);
     }
@@ -1798,22 +2049,39 @@ if (saveNoteBtn) {
       return;
     }
 
+    
     const titolo = titoloEl.value.trim();
     const contenuto = contenutoEl.value.trim();
     const cartella = cartellaEl.value.trim();
     const coloreCartella = folderColorInput.value || "#ffb347";
 
-    let permesso = (permessoSelect?.value || "privata").toLowerCase();
+    // Verifica titolo e contenuto in un'unica condizione
+    if (!titolo || !contenuto) {
+        let message = "⚠️ Inserisci titolo e contenuto!"; 
+        if (!titolo && !contenuto) {
+            message = "⚠️ Inserisci titolo e contenuto!"; 
+        } else if (!titolo) {
+            message = "⚠️ Inserisci titolo della nota!"; 
+        } else if (!contenuto) {
+            message = "⚠️ Inserisci il contenuto della nota!"; 
+        }
+        showToast("info", message);
+        return;
+    }
+
+    let permesso = document.getElementById("permesso").value.toLowerCase();
     if (permesso.includes("lettura")) permesso = "lettura";
     if (permesso.includes("scrittura")) permesso = "scrittura";
     if (permesso.includes("privata")) permesso = "privata";
 
-    if (!titolo || !contenuto) {
-      showToast("info", "⚠️ Inserisci titolo e contenuto!");
-      return;
+    const isUpdate = !!editingNoteId;
+
+    
+    if (isUpdate && permesso === "privata" && utentiSelezionati.length > 0) {
+        showToast("error", "❌ Non puoi impostare PRIVATA mentre la nota è condivisa.");
+        return;
     }
 
-    const isUpdate = !!editingNoteId;
 
     let body;
     if (isUpdate) {
@@ -1823,6 +2091,7 @@ if (saveNoteBtn) {
         contenuto,
         cartella: cartella || null,
         coloreCartella: coloreCartella,
+        permesso,
         versionExpected: window._versionLoadedAtOpen?.[editingNoteId] ?? null
       };
     } else {
@@ -1854,7 +2123,7 @@ if (saveNoteBtn) {
       : API_NOTES;
 
     
-try {
+    try {
     const res = await fetch(url, {
         method,
         headers: { "Content-Type": "application/json" },
@@ -1863,7 +2132,6 @@ try {
 
     if (res.ok) {
 
-        // SE È UNA CREAZIONE, SALVIAMO LA STORIA DELL'UTENTE
         if (!isUpdate && !hasEverCreatedNote) {
             hasEverCreatedNote = true;
             localStorage.setItem(`hasEverCreatedNote_${user}`, "true");
@@ -1873,6 +2141,104 @@ try {
             "success",
             isUpdate ? " Nota aggiornata!" : " Nota creata con successo!"
         );
+
+        if (isUpdate) {
+            try {
+                const resNota = await fetch(
+                    `${API_NOTES}/${editingNoteId}?user=${encodeURIComponent(user)}`
+                );
+
+                if (resNota.ok) {
+                    const notaAgg = await resNota.json();
+                    window._noteVersions[editingNoteId] = notaAgg.versione;
+
+                    const totale = notaAgg.versioni?.length || 0;
+
+                    if (totale >= 50) {
+                        showToast(
+                            "warning",
+                            "⚠️ Hai raggiunto il limite massimo di versioni (50). Le modifiche non genereranno nuove versioni."
+                        );
+                    }
+                }
+            } catch (err) {
+                console.warn("Impossibile verificare limite versioni:", err);
+            }
+        }
+
+        if (isUpdate) {
+            try {
+                const resNota2 = await fetch(
+                    `${API_NOTES}/${editingNoteId}?user=${encodeURIComponent(user)}`
+                );
+
+                if (resNota2.ok) {
+                    const notaAgg = await resNota2.json();
+
+                    window._lastOpenedNote = notaAgg;
+                    window._noteVersions[editingNoteId] = notaAgg.versione;
+                
+                    if (notaAgg.permesso?.tipo) {
+                        permessoSelect.value = notaAgg.permesso.tipo.toLowerCase();
+                    }
+
+                    if (Array.isArray(notaAgg.utentiCondivisi)) {
+                        utentiSelezionati = [...notaAgg.utentiCondivisi];
+                    }
+                }
+            } catch (e) {
+                console.warn("Errore aggiornamento locale permessi:", e);
+            }
+        }
+
+        // ===============================
+        //  AGGIORNAMENTO LIVE PERMESSO NELLA CARD
+        // ===============================
+        if (isUpdate) {
+            try {
+                const resFresh = await fetch(
+                    `${API_NOTES}/${editingNoteId}?user=${encodeURIComponent(user)}`
+                );
+                if (resFresh.ok) {
+                    const fresh = await resFresh.json();
+
+                    const card = document.querySelector(`.note-card[data-id="${editingNoteId}"]`);
+                    if (card) {
+
+                        // -----------------------------------------
+                        // 1. Badge permesso
+                        // -----------------------------------------
+                        const badge = card.querySelector("p small");
+                        const nuovoPerm = normalizzaPermesso(
+                            fresh.permesso?.tipo || fresh.permesso
+                        );
+
+                        if (badge) {
+                            badge.textContent =
+                                nuovoPerm === "privata"
+                                    ? "🔒 Privata"
+                                    : nuovoPerm === "lettura"
+                                    ? "👓 In lettura"
+                                    : "🖊️ In scrittura";
+                        }
+
+                        // -----------------------------------------
+                        // 2. Aggiorna CLASSI card (bordo colorato)
+                        // -----------------------------------------
+                        card.classList.remove("private-note", "shared-read", "shared-write");
+                        if (nuovoPerm === "scrittura") {
+                            card.classList.add("shared-write");
+                        } else if (nuovoPerm === "lettura") {
+                            card.classList.add("shared-read");
+                        } else {
+                            card.classList.add("private-note");
+                        }
+                    }
+                }
+            } catch (e) {
+                console.warn("Errore aggiornamento card permesso:", e);
+            }
+        }
 
         await new Promise(r => setTimeout(r, 150));
         await caricaNote();
@@ -1918,7 +2284,7 @@ async function eliminaNota(id) {
 
   // Verifica subito se la nota è lockata da un altro utente
   try {
-    const resLock = await fetch(`${API_NOTES}/${id}/lock`);
+    const resLock = await fetch(`${API_NOTES}/${id}/lock?user=${encodeURIComponent(user)}`);
     const data = await resLock.json();
 
     if (data.lockedBy && data.lockedBy !== user) {
@@ -1942,6 +2308,8 @@ async function eliminaNota(id) {
         );
 
         if (res.ok) {
+          const modal = document.getElementById("noteModal");
+          if (modal) modal.style.display = "none";
           showToast("success", "🗑️ Nota eliminata!");
           caricaNote();
         } else if (res.status === 403) {
@@ -1988,6 +2356,10 @@ async function rimuovitiDallaNota(id) {
           const updated = sharedIds.filter(nid => nid !== id);
           localStorage.setItem(`sharedNotes_${user}`, JSON.stringify(updated));
           
+          // Pulisci snapshot modale
+          delete window._lastOpenedNote;
+          delete window._originalNoteSnapshot;
+
           showToast("success", "👋 Ti sei rimosso dalla nota condivisa.");
           caricaNote();
         } else {
@@ -2090,7 +2462,7 @@ async function mostraVersioni(id) {
         };
       } else {
    
-        restoreBtn.addEventListener("click", () => ripristinaVersione(id, i));
+        restoreBtn.addEventListener("click", () => ripristinaVersione(id, i, visualNumber));
       }
 
       versionListModal.appendChild(div);
@@ -2136,20 +2508,23 @@ function tempoRelativo(timestampISO) {
   return `${diffGiorni} giorni fa`;
 }
 
-async function ripristinaVersione(id, index) {
+async function ripristinaVersione(id, index, visualNumber) {
 
-// =============================================
-//  BLOCCO RIPRISTINO SE LOCKATA
-// =============================================
-const resLock = await fetch(`${API_NOTES}/${id}?user=${encodeURIComponent(user)}`);
-const nota = await resLock.json();
-if (nota.lockedBy && nota.lockedBy !== user) {
-    showToast("error", `🔒 Nota in modifica da ${nota.lockedBy}. Non puoi ripristinare.`);
-    return;
-}
+  // =============================================
+  //  BLOCCO RIPRISTINO SE LOCKATA
+  // =============================================
+  const resLock = await fetch(
+    `${API_NOTES}/${id}/lock?user=${encodeURIComponent(user)}`
+  );
+  const lockInfo = await resLock.json();
+
+  if (lockInfo.lockedBy && lockInfo.lockedBy !== user) {
+      showToast("error", `🔒 Nota in modifica da ${lockInfo.lockedBy}. Non puoi ripristinare.`);
+      return;
+  }
 
   showConfirmToast(
-    `Vuoi ripristinare la versione #${index + 1}?`,
+    `Vuoi ripristinare la versione #${visualNumber}?`,
     async () => {
       try {
         const res = await fetch(
@@ -2192,6 +2567,12 @@ if (shareNoteBtn) {
   shareNoteBtn.addEventListener("click", async () => {
     if (!shareModal || !userListShare) return;
 
+    // Blocco sicurezza: solo l'autore può aprire la condivisione
+    if (modal.dataset.ruoloCorrente !== "autore") {
+        showToast("error", "Solo l'autore può gestire gli utenti condivisi.");
+        return;
+    }
+
     shareModal.style.display = "flex";
     
     shareModal.removeAttribute("aria-hidden");
@@ -2216,6 +2597,14 @@ if (shareNoteBtn) {
 
       const utenti = await res.json();
       userListShare.innerHTML = "";
+
+      const permCorrente = document.getElementById("permesso").value.toLowerCase();
+
+      // Se PRIVATA niente utenti selezionabili
+      if (permCorrente === "privata") {
+          userListShare.innerHTML = "<p>La nota è privata. Nessun utente può essere aggiunto.</p>";
+          return;
+      }
 
       utenti.forEach((nome) => {
 
@@ -2276,15 +2665,34 @@ function toggleUtente(checkbox, nome, riga) {
   }
 
   renderUtentiCondivisi(utentiSelezionati);
-
+  aggiornaStatoOpzionePrivata();
 }
 
 if (shareCancelBtn) {
   shareCancelBtn.addEventListener("click", chiudiShareModal);
 }
 
-shareSaveBtn.addEventListener("click", () => {
+shareSaveBtn.addEventListener("click", async () => {
+
+    // Aggiorna UI nella modale
     renderUtentiCondivisi(utentiSelezionati);
+    aggiornaStatoOpzionePrivata();
+
+    if (editingNoteId) {
+        try {
+            await fetch(`${API_NOTES}/${editingNoteId}/share?user=${user}`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    utentiCondivisi: utentiSelezionati   
+                })
+            });
+        } catch (e) {
+            console.warn("Errore share API:", e);
+        }
+    }
+
+    // Chiudi il modal degli utenti
     chiudiShareModal();
 });
 
@@ -2304,8 +2712,7 @@ if (searchInput) {
 
     cards.forEach((card) => {
       const titolo = card.querySelector("h2")?.textContent.toLowerCase() || "";
-      const pElements = card.querySelectorAll("p");
-      const contenuto = pElements[0]?.textContent.toLowerCase() || "";
+      const contenuto = card.querySelector(".note-content")?.textContent.toLowerCase() || "";
       const cartella =
         card.querySelector("p small")?.textContent.toLowerCase() || "";
 
@@ -2331,9 +2738,6 @@ if (searchInput) {
   });
 }
 
-// =====================================================
-// DUPLICA NOTA
-// =====================================================
 async function duplicaNota(id) {
   try {
     // Recupera la nota originale
@@ -2345,77 +2749,210 @@ async function duplicaNota(id) {
 
     const nota = await res.json();
 
-    // 2. FORZA MODAL IN MODALITÀ CREA
-    editingNoteId = null;          
-    utentiSelezionati = [];        
+    // ========================================
+    // RESET COMPLETO DELLO STATO
+    // ========================================
+    editingNoteId = null;  
+    utentiSelezionati = []; 
+    modal.dataset.ruoloCorrente = "autore";
+    modalInitialized = true;
 
+    // Pulisce elementi residui da altre modalità
     document.querySelector("#duplicateBtn")?.remove();
     document.querySelector("#leaveShareBtn")?.remove();
     document.querySelector(".note-footer")?.remove();
 
+    // ========================================
+    //  GESTIONE PERMESSO SELECT
+    // ========================================
+    // Clona il select per rimuovere TUTTI i listener precedenti
+    const oldPermessoSelect = document.getElementById("permesso");
+    const newPermessoSelect = oldPermessoSelect.cloneNode(true);
+    oldPermessoSelect.parentNode.replaceChild(newPermessoSelect, oldPermessoSelect);
+    
+    // Aggiorna i riferimenti globali
+    permessoSelect = newPermessoSelect;
+    window.permessoSelect = newPermessoSelect;
+
+    // Sblocca completamente il select
+    permessoSelect.disabled = false;
+    permessoSelect.style.pointerEvents = "auto";
+    permessoSelect.classList.remove("disabled-preview", "disabled");
+    permessoSelect.value = "privata"; // Default privata
+
+    // Listener UNICO per gestire cambio permesso
+    permessoSelect.addEventListener("change", () => {
+      const nuovoPermesso = permessoSelect.value;
+      
+      if (nuovoPermesso === "privata") {
+        shareSection.style.display = "none";
+        shareNoteBtn.style.display = "none";
+        utentiSelezionati = [];
+        renderUtentiCondivisi([]);
+      } else {
+        // Lettura o Scrittura
+        shareSection.style.display = "flex";
+        shareNoteBtn.style.display = "inline-block";
+        renderUtentiCondivisi(utentiSelezionati);
+      }
+      
+      aggiornaStatoOpzionePrivata();
+    });
+
+    // ========================================
+    // GESTIONE BOTTONE CONDIVISIONE
+    // ========================================
     if (shareNoteBtn) {
       shareNoteBtn.disabled = false;
-      shareNoteBtn.onclick = null;                 
       shareNoteBtn.classList.remove("disabled-preview");
-      shareNoteBtn.style.display = "inline-block";
+      shareNoteBtn.style.pointerEvents = "auto";
+      shareNoteBtn.style.display = "none"; // Nascosto perché parte da privata
+      shareNoteBtn.className = "share-users-btn";
+      shareNoteBtn.innerHTML = "👥 Utenti";
+      
+      // Rimuove eventuali onclick precedenti
+      shareNoteBtn.onclick = null;
     }
 
-    modalInitialized = true;
+    // ========================================
+    //  GESTIONE SAVE BUTTON
+    // ========================================
+    // Recupera il bottone salva (NON clonare, usa un approccio diverso)
+    const btnSalva = document.getElementById("saveNoteBtn");
+    
+    // Rimuovi tutti i listener precedenti usando replaceWith
+    const cleanSaveBtn = btnSalva.cloneNode(true);
+    btnSalva.replaceWith(cleanSaveBtn);
+    
+    // Aggiungi il NUOVO listener una sola volta al bottone pulito
+    cleanSaveBtn.addEventListener("click", async () => {
+      await salvaNotaDuplicata();
+    });
+
+    // ========================================
+    //  SETUP UI MODALE
+    // ========================================
     modal.removeAttribute("aria-hidden");
     modal.inert = false;
-
-    // Mostra la modale
     modal.style.display = "flex";
-    modalTitle.textContent = "📄 Duplica nota";
 
-    
+    modalTitle.textContent = "📄 Duplica nota";
+    cleanSaveBtn.style.display = "inline-block";
+    cleanSaveBtn.textContent = "💾 CREA COPIA";
+    cancelNoteBtn.style.display = "inline-block";
+
+    // ========================================
+    // NASCONDI CAMPO AUTORE
+    // ========================================
+    const modalAutore = document.getElementById("modalAutore");
     if (modalAutore) {
-        modalAutore.style.display = "none";
-        modalAutore.textContent = "";
+      modalAutore.style.display = "none";
+      modalAutore.textContent = "";
     }
 
-    // Pulsanti corretti
-    saveNoteBtn.style.display = "inline-block"; 
-    saveNoteBtn.textContent = "💾 CREA COPIA";
-
-    cancelNoteBtn.style.display = "inline-block";
-    shareNoteBtn.style.display = "inline-block"; 
-
-    // 3. ATTIVA I CAMPI 
+    // ========================================
+    // ABILITA TUTTI I CAMPI
+    // ========================================
     titolo.disabled = false;
     contenuto.disabled = false;
     cartella.disabled = false;
-    permessoSelect.disabled = false;
 
-    // 4. PRECOMPILA I CAMPI
+    // ========================================
+    //  PRECOMPILA I CAMPI
+    // ========================================
     titolo.value = nota.titolo + " (Copia)";
     contenuto.value = nota.contenuto;
     cartella.value = nota.cartella || "";
 
-    permessoSelect.value = "privata";   
+    // ========================================
+    //  SEZIONE CONDIVISIONE
+    // ========================================
+    // Parte nascosta perché il permesso è privata
     shareSection.style.display = "none";
+    utentiSelezionati = [];
     renderUtentiCondivisi([]);
+    aggiornaStatoOpzionePrivata();
 
-    // 5. COLORE CARTELLA
-    const colore = nota.coloreCartella || "#ffb347";
+    // ========================================
+    //  COLORE CARTELLA
+    // ========================================
+    const colore = nota.coloreCartella || folderColors[nota.cartella] || "#ffb347";
+    applyFolderColor(colore, true);
+    
+    const inputColore = document.getElementById("folderColorInput");
+    if (inputColore) {
+      inputColore.value = colore;
+    }
 
-    if (typeof applyFolderColor === 'function') {
-      applyFolderColor(colore, true);
+    // ========================================
+    // FOCUS ACCESSIBILITÀ
+    // ========================================
+    modal.setAttribute("tabindex", "-1");
+    setTimeout(() => modal.focus(), 0);
 
-      const inputColore = document.getElementById("folderColorInput");
-      if (inputColore) inputColore.value = colore;
-    } else {
-      
-      setTimeout(() => {
-        const inputColore = document.getElementById("folderColorInput");
-        const btnColore = document.getElementById("folderColorBtn");
+    // ========================================
+    // FUNZIONE INTERNA PER SALVARE
+    // ========================================
+    async function salvaNotaDuplicata() {
+      const titoloVal = titolo.value.trim();
+      const contenutoVal = contenuto.value.trim();
+      const cartellaVal = cartella.value.trim();
+      const permessoVal = permessoSelect.value;
+      const coloreVal = inputColore ? inputColore.value : "#ffb347";
 
-        if (inputColore) inputColore.value = colore;
-        if (btnColore) btnColore.style.backgroundColor = colore;
+      // Validazione
+      if (!titoloVal || !contenutoVal) {
+        showToast("info", "⚠️ Inserisci titolo e contenuto!");
+        return;
+      }
 
-        resetPickr();
-        initFolderColorPicker(colore);
-      }, 120);
+      // DTO per CREARE una nuova nota (come CreateNoteRequest)
+      const notaCopia = {
+        titolo: titoloVal,
+        contenuto: contenutoVal,
+        creatore: user,
+        cartella: cartellaVal || null,
+        utentiCondivisi: [...utentiSelezionati], 
+        permesso: permessoVal,
+        coloreCartella: coloreVal
+      };
+
+      try {
+        const resSave = await fetch(API_NOTES, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(notaCopia)
+        });
+
+        if (!resSave.ok) {
+          const errorMsg = await resSave.text();
+          console.error("Errore salvataggio:", errorMsg);
+          showToast("error", "❌ Impossibile salvare la nota duplicata.");
+          return;
+        }
+
+        showToast("success", "✅ Nota duplicata con successo!");
+        
+        // Salva il colore della cartella in localStorage
+        if (cartellaVal) {
+          localStorage.setItem(`folderColor_${cartellaVal}`, coloreVal);
+          folderColors[cartellaVal] = coloreVal;
+        }
+
+        // Marca che l'utente ha creato almeno una nota
+        if (!hasEverCreatedNote) {
+          hasEverCreatedNote = true;
+          localStorage.setItem(`hasEverCreatedNote_${user}`, "true");
+        }
+
+        // Chiudi la modale e ricarica le note
+        chiudiModal("noteModal");
+        await caricaNote();
+
+      } catch (err) {
+        console.error("Errore di rete durante salvataggio:", err);
+        showToast("error", "❌ Errore di connessione durante il salvataggio.");
+      }
     }
 
   } catch (err) {
@@ -2437,7 +2974,7 @@ if (tutorialSideBtn) {
 
     document.body.classList.remove("tutorial-mode");
 
-    document.querySelectorAll(".note-card").forEach(card => {
+    document.querySelectorAll(".note-card")?.forEach(card => {
     card.style.opacity = "1";
 });
 
@@ -2487,7 +3024,9 @@ function rgbToHsl(r, g, b) {
   return { h: h * 360, s, l };
 }
 
+// =====================================================
 // AVVIO INIZIALE
-caricaNote().then(() => {
-    checkNewFolderParam();
+// =====================================================
+window.addEventListener("DOMContentLoaded", () => {
+  caricaNote().then(checkNewFolderParam);
 });

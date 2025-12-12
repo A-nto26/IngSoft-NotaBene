@@ -54,7 +54,9 @@ public class NoteService {
 
         NoteView v = new NoteView();
 
-        // campi base
+        // ============================================================
+        // CAMPI BASE
+        // ============================================================
         v.setId(note.getId());
         v.setTitolo(note.getTitolo());
         v.setContenuto(note.getContenuto());
@@ -62,14 +64,18 @@ public class NoteService {
         v.setColoreCartella(note.getColoreCartella());
         v.setCreatore(note.getCreatore());
 
-        // permesso
+        // ============================================================
+        // PERMESSO
+        // ============================================================
         String perm = "privata";
         if (note.getPermesso() != null) {
             perm = note.getPermesso().getTipo().toLowerCase();
         }
         v.setPermesso(perm);
 
-        // ruolo utente
+        // ============================================================
+        // RUOLO UTENTE (autore | scrittura | lettura | hidden)
+        // ============================================================
         String ruolo;
         if (note.getCreatore().equalsIgnoreCase(normUser)) {
             ruolo = "autore";
@@ -82,34 +88,58 @@ public class NoteService {
         }
         v.setRuolo(ruolo);
 
-        // lock owner (serve al frontend)
+        // ============================================================
+        // LOCK OWNER
+        // ============================================================
         String lockedBy = repo.getEffectiveLockOwner(note.getId()).orElse(null);
         v.setLockedBy(lockedBy);
 
-        // versione corrente
+        // ============================================================
+        // VERSIONE CORRENTE
+        // ============================================================
         int versioneCorrente = (note.getVersioni() == null)
                 ? 1
                 : note.getVersioni().size() + 1;
         v.setVersione(versioneCorrente);
 
-        // timestamp
+        // ============================================================
+        // LIMIT VERSIONI RAGGIUNTO
+        // ============================================================
+        boolean limit = note.getVersioni() != null && note.getVersioni().size() >= 50;
+        v.setVersionLimitReached(limit);
+
+        // ============================================================
+        // PERMESSI → canChangePermission
+        // ============================================================
+        boolean isAuthor = note.getCreatore().equalsIgnoreCase(normUser);
+
+        boolean hasSharedUsers = note.getUtentiCondivisi() != null &&
+                !note.getUtentiCondivisi().isEmpty();
+
+        boolean canChange = isAuthor &&
+                !(perm.equals("privata") && hasSharedUsers);
+
+        v.setCanChangePermission(canChange);
+
+        // ============================================================
+        // TIMESTAMP
+        // ============================================================
         v.setCreatedAt(note.getCreatedAt());
         v.setLastModifiedAt(note.getLastModifiedAt());
         v.setLastModifiedBy(note.getLastModifiedBy());
 
-        // lista utenti condivisi filtrata
+        // ============================================================
+        // LISTA UTENTI CONDIVISI FILTRATA
+        // ============================================================
         List<String> condivisi = new ArrayList<>();
 
         if (note.getUtentiCondivisi() != null) {
             for (String u : note.getUtentiCondivisi()) {
 
-                // non aggiungere l'utente corrente
                 if (u.equalsIgnoreCase(normUser))
-                    continue;
-
-                // non aggiungere l'autore
+                    continue; // escludi corrente
                 if (u.equalsIgnoreCase(note.getCreatore()))
-                    continue;
+                    continue; // escludi autore
 
                 condivisi.add(u);
             }
@@ -117,7 +147,13 @@ public class NoteService {
 
         v.setCondivisaCon(condivisi);
 
-        v.setVersioni(note.getVersioni() != null ? new ArrayList<>(note.getVersioni()) : List.of());
+        // ============================================================
+        // VERSIONI
+        // ============================================================
+        v.setVersioni(
+                note.getVersioni() != null
+                        ? new ArrayList<>(note.getVersioni())
+                        : List.of());
 
         return v;
     }
@@ -183,8 +219,7 @@ public class NoteService {
 
         repo.save(n);
         LoggerActions.log("NOTE_CREATE_SUCCESS", creatoreNorm, Map.of(
-            "noteId", n.getId()
-        ));
+                "noteId", n.getId()));
         return n;
     }
 
@@ -215,7 +250,7 @@ public class NoteService {
 
         return List.copyOf(result);
     }
-    
+
     /* ===== METODI DI SUPPORTO PER TEST ===== */
     public List<Note> getNotesForUser(String username) {
         return getVisibleNotesForUser(username);
@@ -259,12 +294,10 @@ public class NoteService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Non hai i permessi per modificare questa nota");
         }
 
-        // 2) Lock: usiamo getEffectiveLockOwner del repository (lock attivo e non
-        // scaduto)
+        // 2) Lock: deve essere valido e posseduto dall'utente
         Optional<String> lockOwnerOpt = repo.getEffectiveLockOwner(id);
 
         if (lockOwnerOpt.isEmpty()) {
-            // lock scaduto o inesistente, conflitto 409
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Lock scaduto. Riapri la nota per continuare.");
         }
 
@@ -275,32 +308,116 @@ public class NoteService {
                     "La nota è in modifica da " + lockOwner + ".");
         }
 
-        // 3) Lock valido, salva versione e aggiorna
-        n.salvaVersionePrecedente();
+        // ============================================================
+        // 3) NORMALIZZAZIONE INPUT (evita versioni fantasma)
+        // ============================================================
 
-        if (req.getTitolo() != null && !req.getTitolo().isBlank()) {
-            n.setTitolo(req.getTitolo());
+        String newTitolo = (req.getTitolo() == null || req.getTitolo().isBlank())
+                ? n.getTitolo()
+                : req.getTitolo();
+
+        String newContenuto = (req.getContenuto() == null)
+                ? n.getContenuto()
+                : req.getContenuto();
+
+        String newCartella = (req.getCartella() == null || req.getCartella().isBlank())
+                ? n.getCartella()
+                : req.getCartella();
+
+        String newColore = (req.getColoreCartella() == null || req.getColoreCartella().isBlank())
+                ? n.getColoreCartella()
+                : req.getColoreCartella().trim();
+
+        // ============================================================
+        // 4) VERIFICA MODIFICHE REALI
+        // ============================================================
+
+        boolean titoloChanged = !Objects.equals(newTitolo, n.getTitolo());
+        boolean contenutoChanged = !Objects.equals(newContenuto, n.getContenuto());
+        boolean cartellaChanged = !Objects.equals(newCartella, n.getCartella());
+        boolean coloreChanged = !Objects.equals(newColore, n.getColoreCartella());
+
+        boolean modificheRilevanti = titoloChanged || contenutoChanged || cartellaChanged || coloreChanged;
+
+        // ============================================================
+        // 4B) PERMESSO — aggiornabile (Sprint 5)
+        // ============================================================
+        boolean permessoChanged = false;
+        String nuovoPermesso = req.getPermesso();
+
+        if (nuovoPermesso != null && !nuovoPermesso.isBlank()) {
+            String permNorm = nuovoPermesso.trim().toLowerCase();
+            String permAttuale = n.getPermesso().getTipo().toLowerCase();
+
+            if (!permNorm.equals(permAttuale)) {
+                permessoChanged = true;
+            }
         }
 
-        if (req.getContenuto() != null && !req.getContenuto().isBlank()) {
-            n.setContenuto(req.getContenuto());
+        // ============================================================
+        // 5) SALVATAGGIO VERSIONE PRECEDENTE (solo se necessario)
+        // ============================================================
+
+        if (modificheRilevanti) {
+            boolean versioneSalvata = n.salvaVersionePrecedente();
+
+            if (!versioneSalvata) {
+                LoggerActions.log(
+                        "NOTE_VERSION_LIMIT_REACHED",
+                        userNorm,
+                        Map.of("noteId", id));
+            }
         }
 
-        if (req.getCartella() != null) {
-            n.setCartella(req.getCartella());
+        // ============================================================
+        // 6) APPLICA LE MODIFICHE REALI
+        // ============================================================
+
+        if (titoloChanged) {
+            n.setTitolo(newTitolo);
         }
 
-        if (req.getColoreCartella() != null && !req.getColoreCartella().isBlank()) {
-            n.setColoreCartella(req.getColoreCartella().trim());
+        if (contenutoChanged) {
+            n.setContenuto(newContenuto);
+        }
+
+        if (cartellaChanged) {
+            n.setCartella(newCartella);
+        }
+
+        if (coloreChanged) {
+            n.setColoreCartella(newColore);
         }
 
         n.setLastModifiedAt(LocalDateTime.now());
         n.setLastModifiedBy(userNorm);
 
+        if (permessoChanged) {
+
+            // Non puoi tornare privata se ci sono utenti condivisi
+            if ("privata".equalsIgnoreCase(nuovoPermesso)
+                    && n.getUtentiCondivisi() != null
+                    && !n.getUtentiCondivisi().isEmpty()) {
+
+                throw new ResponseStatusException(
+                        HttpStatus.FORBIDDEN,
+                        "Non puoi impostare 'Privata' mentre la nota è condivisa.");
+            }
+
+            // Converte la stringa nel modello Permesso
+            Permesso p;
+            switch (nuovoPermesso.toLowerCase()) {
+                case "lettura" -> p = new Lettura();
+                case "scrittura" -> p = new Scrittura();
+                default -> p = new Privata();
+            }
+
+            n.setPermesso(p);
+        }
         repo.save(n);
-        LoggerActions.log("NOTE_UPDATE_SUCCESS", userNorm, Map.of(
-            "noteId", id
-        ));
+
+        LoggerActions.log("NOTE_UPDATE_SUCCESS", userNorm, Map.of("noteId", id));
+
         return n;
     }
 
@@ -374,9 +491,8 @@ public class NoteService {
 
         repo.save(copia);
         LoggerActions.log("NOTE_DUPLICATE_SUCCESS", userNorm, Map.of(
-            "originalId", id,
-            "newId", copia.getId()
-        ));
+                "originalId", id,
+                "newId", copia.getId()));
         return copia;
     }
 
@@ -458,9 +574,8 @@ public class NoteService {
 
         repo.save(n);
         LoggerActions.log("NOTE_FOLDER_CHANGED", userNorm, Map.of(
-            "noteId", id,
-            "folder", nuovoNome
-        ));
+                "noteId", id,
+                "folder", nuovoNome));
 
     }
 
@@ -489,9 +604,8 @@ public class NoteService {
 
         repo.addUsersToShare(id, new LinkedHashSet<>(req.getUtentiCondivisi()));
         LoggerActions.log("NOTE_SHARE_ADD_USERS", autoreNorm, Map.of(
-            "noteId", id,
-            "usersAdded", req.getUtentiCondivisi()
-        ));
+                "noteId", id,
+                "usersAdded", req.getUtentiCondivisi()));
     }
 
     /* ===== METODO AUSILIARE PER TEST ===== */
@@ -561,9 +675,8 @@ public class NoteService {
 
         repo.save(n);
         LoggerActions.log("NOTE_RESTORE_SUCCESS", userNorm, Map.of(
-            "noteId", id,
-            "versionIndex", index
-        ));
+                "noteId", id,
+                "versionIndex", index));
 
     }
 
@@ -576,18 +689,16 @@ public class NoteService {
         String userNorm = normalize(username);
         if (userNorm == null || userNorm.isBlank()) {
             LoggerActions.log("NOTE_LOCK_ERROR", "system", Map.of(
-            "noteId", id,
-            "reason", "username_non_valido"
-        ));
+                    "noteId", id,
+                    "reason", "username_non_valido"));
             return "error"; // username non valido
         }
 
         Note n = repo.findById(id);
         if (n == null) {
             LoggerActions.log("NOTE_LOCK_ERROR", userNorm, Map.of(
-            "noteId", id,
-            "reason", "nota_non_trovata"
-        ));
+                    "noteId", id,
+                    "reason", "nota_non_trovata"));
             return "not_found"; // nota non trovata
         }
 
@@ -595,20 +706,18 @@ public class NoteService {
 
         // Se non c’è un lock attivo o è scaduto, prova a prenderlo
         if (ownerOpt.isEmpty()) {
-        boolean ok = repo.tryLock(id, userNorm);
+            boolean ok = repo.tryLock(id, userNorm);
 
-        if (ok) {
-            LoggerActions.log("NOTE_LOCK_RECOVERED", userNorm, Map.of(
-                "noteId", id
-            ));
-            return "expired_recovered";
-        } else {
-            LoggerActions.log("NOTE_LOCK_ERROR", userNorm, Map.of(
-                "noteId", id,
-                "reason", "acquisizione_fallita"
-            ));
-            return "error";
-        }
+            if (ok) {
+                LoggerActions.log("NOTE_LOCK_RECOVERED", userNorm, Map.of(
+                        "noteId", id));
+                return "expired_recovered";
+            } else {
+                LoggerActions.log("NOTE_LOCK_ERROR", userNorm, Map.of(
+                        "noteId", id,
+                        "reason", "acquisizione_fallita"));
+                return "error";
+            }
         }
 
         String owner = ownerOpt.get();
@@ -618,15 +727,13 @@ public class NoteService {
             repo.refreshLock(id, userNorm);
 
             LoggerActions.log("NOTE_LOCK_RENEWED", userNorm, Map.of(
-            "noteId", id
-        ));
+                    "noteId", id));
             return "locked";
         }
 
         LoggerActions.log("NOTE_LOCKED_BY_OTHER", userNorm, Map.of(
-        "noteId", id,
-        "currentOwner", owner
-        ));
+                "noteId", id,
+                "currentOwner", owner));
         // Lock detenuto da un altro utente
         return "already_locked";
     }
@@ -646,31 +753,34 @@ public class NoteService {
 
     /** Sblocco volontario. Ritorna "unlocked" o "forbidden". */
     public String unlock(int id, String username) {
-    String userNorm = normalize(username);
-    if (userNorm == null || userNorm.isBlank()) {
-        LoggerActions.log("NOTE_UNLOCK_ERROR", "system", Map.of(
-            "noteId", id,
-            "reason", "username_non_valido"
-        ));
-        return "forbidden";
+
+        String userNorm = normalize(username);
+        if (userNorm == null || userNorm.isBlank()) {
+            LoggerActions.log("NOTE_UNLOCK_ERROR", "system", Map.of(
+                    "noteId", id,
+                    "reason", "username_non_valido"));
+            return "forbidden";
+        }
+
+        boolean unlocked = repo.unlockNote(id, userNorm);
+
+        // =============================
+        // CASO 1 — Sblocco riuscito
+        // =============================
+        if (unlocked) {
+            LoggerActions.log("NOTE_UNLOCK_SUCCESS", userNorm, Map.of(
+                    "noteId", id));
+            return "unlocked";
+        }
+
+        // =============================
+        // CASO 2 — L'utente NON è il proprietario del lock
+        // =============================
+        LoggerActions.log("NOTE_UNLOCK_NOT_OWNER", userNorm, Map.of(
+                "noteId", id,
+                "reason", "tentativo_sblocco_non_autorizzato"));
+        return "not_owner";
     }
-
-    boolean unlocked = repo.unlockNote(id, userNorm);
-
-    if (unlocked) {
-        LoggerActions.log("NOTE_UNLOCK_SUCCESS", userNorm, Map.of(
-            "noteId", id
-        ));
-        return "unlocked";
-    }
-
-    LoggerActions.log("NOTE_UNLOCK_FORBIDDEN", userNorm, Map.of(
-        "noteId", id,
-        "reason", "lock_posseduto_da_altro_utente"
-    ));
-    return "forbidden";
-}
-
 
     /** Stato del lock, usato da GET /lock */
     public Map<String, Object> getLockState(int id) {

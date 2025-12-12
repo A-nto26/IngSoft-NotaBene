@@ -226,15 +226,22 @@ public class Note implements Serializable {
     // ============================================================
 
     /** Salva una versione precedente PRIMA della modifica */
-    public void salvaVersionePrecedente() {
+    public boolean salvaVersionePrecedente() {
 
         if ((this.titolo == null || this.titolo.isBlank()) &&
                 (this.contenuto == null || this.contenuto.isBlank())) {
-            return;
+            return true; 
         }
 
         if (this.versioni == null) {
             this.versioni = new ArrayList<>();
+        }
+
+        final int MAX_VERSIONI = 50;
+
+        // LIMITE RAGGIUNTO
+        if (this.versioni.size() >= MAX_VERSIONI) {
+            return false; // segnale: NON salvata
         }
 
         VersioneNota v = new VersioneNota(
@@ -244,19 +251,12 @@ public class Note implements Serializable {
 
         this.versioni.add(0, v);
 
-        // massimo 20 versioni
-        if (this.versioni.size() > 20) {
-            this.versioni.remove(this.versioni.size() - 1);
-        }
+        return true; // tutto ok
     }
 
     // ============================================================
     // PERMESSI
     // ============================================================
-
-    public void cambiaPermesso(Permesso nuovoPermesso) {
-        this.permesso = nuovoPermesso;
-    }
 
     public boolean puoLeggere(String username) {
         if (username == null)

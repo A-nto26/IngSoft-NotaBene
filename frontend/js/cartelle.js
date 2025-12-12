@@ -15,6 +15,38 @@ window._noteVersions = window._noteVersions || {};
 window._versionLoadedAtOpen = window._versionLoadedAtOpen || {};
 
 
+function openNoteModal(nota) {
+  const modal = document.getElementById("previewModal");
+  const modalTitle = document.getElementById("previewTitolo");
+  const modalContent = document.getElementById("previewContenuto");
+
+  if (!modal) {
+    console.error("Modal not found");
+    return;
+  }
+
+  // Controllo dei dati della nota
+  if (!nota || !nota.titolo || !nota.contenuto) {
+    console.error("Dati della nota non validi", nota);
+    return;
+  }
+
+  // Mostra la modale
+  modal.style.display = "flex";  // Assicurati che sia visibile con 'flex'
+
+  // Imposta il contenuto della modale con il titolo e il contenuto della nota
+  modalTitle.textContent = nota.titolo;
+  modalContent.textContent = nota.contenuto;
+
+  // Aggiungi un evento per chiudere la modale quando clicchi fuori
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal || e.target === closePreviewBtn) {
+      modal.style.display = "none";
+    }
+  });
+}
+
+
 // =====================================================
 //  TOAST BASE
 // =====================================================
@@ -145,7 +177,7 @@ if (!user) {
 
 
 if (welcomeUser) {
-  welcomeUser.textContent = `Ciao, ${user}! 👋`;
+  welcomeUser.textContent = `Ciao, ${user.toUpperCase()}! 👋`;
 }
 
 // ===== LOGOUT ===== */
@@ -307,7 +339,7 @@ function generaCartelle() {
 function mostraNote() {
   noteList.innerHTML = "";
 
-  // SE NON C'È CARTELLA SELEZIONATA → mostra il messaggio
+  // SE NON C'È CARTELLA SELEZIONATA,  mostra il messaggio
   if (!cartellaAttiva) {
     noFolderSelected.classList.remove("hidden");
     noResults.style.display = "none";
@@ -335,141 +367,181 @@ function mostraNote() {
   noResults.style.display = "none";
 
   filtrate.forEach(nota => {
-    const card = document.createElement("div");
-    card.className = "note-card";
+  const card = document.createElement("div");
+  card.className = "note-card";
 
-    // ==========================
-    //  PERMESSO NORMALIZZATO
-    // (stessa logica della dashboard)
-    // ==========================
-    let permessoTipo = "privata";
+  // Aggiungi un evento per aprire la nota in versione estesa (modale o sezione)
+  card.addEventListener("click", () => {
+    openNoteModal(nota);  // La modale si apre solo quando l'utente clicca sulla carta
+  });
 
-    if (!nota.permesso) {
-      permessoTipo = "privata";
-    } else if (typeof nota.permesso === "string") {
-      permessoTipo = nota.permesso.toLowerCase();
-    } else if (nota.permesso && nota.permesso.tipo) {
-      // es: { tipo: "SolaLettura" } → "solalettura"
-      permessoTipo = nota.permesso.tipo.toLowerCase();
-    }
+  // ==========================
+  //  PERMESSO NORMALIZZATO
+  // ==========================
+  let permessoTipo = "privata";
 
-    // ==========================
-    //  COLORE BORDO CARD
-    // (usa includes per gestire "solalettura", "scrittura", ecc.)
-    // ==========================
-    if (permessoTipo.includes("scrittura")) {
-      card.classList.add("shared-write");
-    } else if (permessoTipo.includes("lettura")) {
-      card.classList.add("shared-read");
-    } else {
-      // fallback → privata
-      card.classList.add("note-private");
-    }
-
-    // ==========================
-    // VERSIONE (usa campo versione SE esiste)
-    // ==========================
-    const versioneCorrente =
-      typeof nota.versione === "number"
-        ? nota.versione
-        : (nota.versioni?.length || 0) + 1;
-
-    // ==========================
-    //  COLORE BADGE VERSIONE
-    // ==========================
-    let badgeClass = "version-badge-private";
-    if (permessoTipo.includes("scrittura")) {
-      badgeClass = "version-badge-write";
-    } else if (permessoTipo.includes("lettura")) {
-      badgeClass = "version-badge-read";
-    }
-
-    card.innerHTML = `
-      <div class="card-header">
-        <button class="note-menu-btn">⋮</button>
-        <div class="version-badge-folder ${badgeClass}">v${versioneCorrente}</div>
-
-        <div class="note-menu">
-          <button class="delete-note-btn">🗑 Elimina nota</button>
-        </div>
-      </div>
-
-      <h2>${nota.titolo}</h2>
-      <p>${nota.contenuto}</p>
-    `;
-
-    // preview
-    card.addEventListener("click", async () => {
-    
-    // Normalizza versione attuale per sicurezza (come dashboard)
-    const versioneCorrente =
-        typeof nota.versione === "number"
-            ? nota.versione
-            : (nota.versioni?.length || 0) + 1;
-
-    window._noteVersions[nota.id] = versioneCorrente;
-    window._versionLoadedAtOpen[nota.id] = versioneCorrente;
-
-    //  controllo versione lato server
-    const notaAggiornata = await ensureLatestVersion(nota, user);
-
-    //  Apri preview (solo titolo + contenuto)
-    document.getElementById("previewTitolo").textContent = notaAggiornata.titolo;
-    document.getElementById("previewContenuto").textContent = notaAggiornata.contenuto;
-
-    document.getElementById("previewModal").style.display = "flex";
-});
-
-    noteList.appendChild(card);
-
-    // ---- MENU [⋮] ----
-    const menuBtn = card.querySelector(".note-menu-btn");
-    const menu = card.querySelector(".note-menu");
-    const deleteBtn = card.querySelector(".delete-note-btn");
-
-    // apre/chiude il menu senza aprire la preview
-    menuBtn.addEventListener("click", (e) => {
-      e.stopPropagation();
-      menu.classList.toggle("open");
-    });
-
-    // chiudi menu cliccando fuori
-    document.addEventListener("click", () => {
-      menu.classList.remove("open");
-    });
-
-    // ---- ELIMINA NOTA ----
-    deleteBtn.addEventListener("click", async (e) => {
-  e.stopPropagation();
-
-  //  Controllo lock prima di chiedere conferma
-  const lock = await getLockInfo(nota.id);
-
-  if (lock && lock.lockedBy) {
-    showToast("error", `❌ Nota in modifica da ${lock.lockedBy}. Eliminazione non consentita.`);
-    return;
+  if (!nota.permesso) {
+    permessoTipo = "privata";
+  } else if (typeof nota.permesso === "string") {
+    permessoTipo = nota.permesso.toLowerCase();
+  } else if (nota.permesso && nota.permesso.tipo) {
+    permessoTipo = nota.permesso.tipo.toLowerCase();
   }
 
-  //  Procedura normale
-  showConfirmToast(
-    `Vuoi davvero eliminare la nota "${nota.titolo}"?`,
-    async () => {
-      try {
-        await fetch(`${API_NOTES}/${nota.id}?user=${user}`, {
-          method: "DELETE"
-        });
+  // ==========================
+  //  COLORE BORDO CARD
+  // ==========================
+  if (permessoTipo.includes("scrittura")) {
+    card.classList.add("shared-write");
+  } else if (permessoTipo.includes("lettura")) {
+    card.classList.add("shared-read");
+  } else {
+    card.classList.add("note-private");
+  }
 
-        showToast("success", "🗑 Nota eliminata!");
-        caricaNote();
+  // ==========================
+  //  VERSIONE (usa campo versione SE esiste)
+  // ==========================
+  const versioneCorrente =
+    typeof nota.versione === "number"
+      ? nota.versione
+      : (nota.versioni?.length || 0) + 1;
 
-      } catch (err) {
-        console.error("Errore:", err);
-        showToast("error", "Errore durante l'eliminazione.");
-      }
-    }
-  );
-    });
+  // ==========================
+  //  COLORE BADGE VERSIONE
+  // ==========================
+  let badgeClass = "version-badge-private";
+  if (permessoTipo.includes("scrittura")) {
+    badgeClass = "version-badge-write";
+  } else if (permessoTipo.includes("lettura")) {
+    badgeClass = "version-badge-read";
+  }
+
+  card.innerHTML = `
+    <div class="card-header">
+      <button class="note-menu-btn">⋮</button>
+      <div class="version-badge-folder ${badgeClass}">v${versioneCorrente}</div>
+
+      <div class="note-menu">
+        <!-- Pulsante che cambia in base al ruolo dell'utente -->
+      </div>
+    </div>
+    <h2>${nota.titolo}</h2>
+    <p>${nota.contenuto}</p>
+  `;
+
+  // Aggiungi evento per aprire la nota in versione estesa (modale o sezione)
+  card.addEventListener("click", () => {
+    openNoteModal(nota);
   });
+
+  // Aggiungi evento per eliminare la nota
+  const menu = card.querySelector(".note-menu");
+  const deleteBtn = document.createElement("button");
+
+  // Se l'utente è l'autore, mostra il pulsante "Elimina nota"
+  if (user === nota.creatore) {
+    deleteBtn.textContent = "🗑 Elimina nota";
+    deleteBtn.classList.add("delete-note-btn");    
+  } else {
+    // Se l'utente è in condivisione, mostra "Rimuoviti"
+    deleteBtn.textContent = "⛓️‍💥 Rimuoviti ";
+    deleteBtn.className = "remove-share-btn";
+  }
+
+  // Appendiamo il pulsante al menu
+  menu.appendChild(deleteBtn);
+
+  deleteBtn.addEventListener("click", async (e) => {
+    e.stopPropagation();
+
+    // Se è l'autore, elimina la nota
+    if (user === nota.creatore) {
+      // Controllo lock prima di chiedere conferma
+      const lock = await getLockInfo(nota.id);
+      if (lock && lock.lockedBy) {
+        showToast("error", `❌ Nota in modifica da ${lock.lockedBy}. Eliminazione non consentita.`);
+        return;
+      }
+
+      // Chiedi conferma
+      showConfirmToast(
+        `Vuoi davvero eliminare la nota "${nota.titolo}"?`,
+        async () => {
+          try {
+            const res = await fetch(`${API_NOTES}/${nota.id}?user=${user}`, {
+              method: "DELETE"
+            });
+
+            if (res.status === 403) {
+              showToast("error", "❌ Non hai il permesso per eliminare questa nota.");
+              return;
+            }
+
+            if (!res.ok) {
+              showToast("error", "⚠️ Errore: impossibile eliminare la nota.");
+              return;
+            }
+
+            showToast("success", "🗑 Nota eliminata!");
+            caricaNote();
+
+          } catch (err) {
+            console.error("Errore:", err);
+            showToast("error", "Errore durante l'eliminazione.");
+          }
+        }
+      );
+    } else {
+      // Se è un utente condiviso, rimuovilo dalla condivisione
+      showConfirmToast(
+        `Vuoi davvero rimuovere la tua condivisione della nota "${nota.titolo}"?`,
+        async () => {
+          try {
+            const res = await fetch(`${API_NOTES}/${nota.id}/removeSelf?user=${user}`, {
+              method: "POST"
+            });
+
+            if (res.status === 403) {
+              showToast("error", "❌ Non hai il permesso per rimuovere questa nota.");
+              return;
+            }
+
+            if (!res.ok) {
+              showToast("error", "⚠️ Errore: impossibile rimuovere la condivisione.");
+              return;
+            }
+
+            showToast("success", "📤 Rimosso dalla condivisione!");
+            caricaNote();
+
+          } catch (err) {
+            console.error("Errore:", err);
+            showToast("error", "Errore durante la rimozione dalla condivisione.");
+          }
+        }
+      );
+    }
+  });
+
+  noteList.appendChild(card);
+
+  // ---- MENU [⋮] ----
+  const menuBtn = card.querySelector(".note-menu-btn");
+
+  // apre/chiude il menu senza aprire la preview
+  menuBtn.addEventListener("click", (e) => {
+    e.stopPropagation();
+    menu.classList.toggle("open");
+  });
+
+  // chiudi menu cliccando fuori
+  document.addEventListener("click", () => {
+    menu.classList.remove("open");
+  });
+
+  
+});
 }
 
 
@@ -479,6 +551,7 @@ searchInput.addEventListener("input", mostraNote);
 /* ===== MODALE ANTEPRIMA — CHIUSURA ===== */
 const previewModal = document.getElementById("previewModal");
 const closePreviewBtn = document.getElementById("closePreviewBtn");
+
 
 if (closePreviewBtn) {
   closePreviewBtn.addEventListener("click", () => {

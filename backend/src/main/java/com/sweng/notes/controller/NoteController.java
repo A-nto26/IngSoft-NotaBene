@@ -20,7 +20,7 @@ import java.util.*;
 /**
  * Controller REST per la gestione delle note.
  * Regole principali:
- * - Il permesso NON è modificabile dopo la creazione
+ * - Il permesso è modificabile dopo la creazione
  * - L'autore può SOLO aggiungere utenti (MAI RIMUOVERLI)
  * - Gli utenti condivisi possono togliere solo sé stessi
  * - Lock concorrente con timeout e refresh
@@ -165,93 +165,83 @@ public class NoteController {
     // ============================================================
     @PutMapping("/{id}")
     public ResponseEntity<String> updateNote(
-            @PathVariable int id,
-            @RequestParam("user") String user,
-            @RequestBody NoteUpdateRequest req) {
+        @PathVariable int id,
+        @RequestParam("user") String user,
+        @RequestBody NoteUpdateRequest req) {
 
-        Note n = noteService.getNoteById(id);
-        if (n == null)
-            return ResponseEntity.notFound().build();
+    Note n = noteService.getNoteById(id);
+    if (n == null)
+        return ResponseEntity.notFound().build();
 
-        String effectiveUser = normalizeUser(user);
-        if (effectiveUser == null) {
-            return ResponseEntity.badRequest().body("⚠️ Utente non specificato.");
-        }
+    String effectiveUser = normalizeUser(user);
+    if (effectiveUser == null) {
+        return ResponseEntity.badRequest().body("⚠️ Utente non specificato.");
+    }
 
-        // 1) PERMESSO
-        if (!n.puoScrivere(effectiveUser)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("❌ Non hai i permessi per modificare questa nota.");
-        }
+    // 1) PERMESSO
+    if (!n.puoScrivere(effectiveUser)) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("❌ Non hai i permessi per modificare questa nota.");
+    }
 
-        // 2) LOCK (nuova logica)
-        Optional<String> lockOwnerOpt = noteService.getLockOwner(id);
+    // 2) LOCK
+    Optional<String> lockOwnerOpt = noteService.getLockOwner(id);
 
-        if (lockOwnerOpt.isEmpty()) {
-            // lock assente → scaduto oppure mai acquisito
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("⌛ Il lock è scaduto. Riapri la nota per continuare.");
-        }
+    if (lockOwnerOpt.isEmpty()) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("⌛ Il lock è scaduto. Riapri la nota per continuare.");
+    }
 
-        String lockOwner = lockOwnerOpt.get();
+    String lockOwner = lockOwnerOpt.get();
+    if (!lockOwner.equalsIgnoreCase(effectiveUser)) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("❌ La nota è attualmente in modifica da: " + lockOwner);
+    }
 
-        if (!lockOwner.equalsIgnoreCase(effectiveUser)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("❌ La nota è attualmente in modifica da: " + lockOwner);
-        }
+    // 2.5) CONTROLLO VERSIONE (evita overwrite)
+    int versioneCorrente = (n.getVersioni() == null ? 1 : n.getVersioni().size() + 1);
+    Integer versioneAttesa = req.getVersionExpected();
 
-        // 2.5) CONTROLLO VERSIONE (evita overwrite)
-        int versioneCorrente = (n.getVersioni() == null ? 1 : n.getVersioni().size() + 1);
-        Integer versioneAttesa = req.getVersionExpected();
+    if (versioneAttesa != null && !versioneAttesa.equals(versioneCorrente)) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("❌ La nota è stata aggiornata da un altro utente. Ricarica la nota per continuare.");
+    }
 
-        if (versioneAttesa != null && !versioneAttesa.equals(versioneCorrente)) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("❌ La nota è stata aggiornata da un altro utente. Ricarica la nota per continuare.");
-        }
+    // 3) UPDATE unificato nel Service
+    try {
+        noteService.update(id, req, effectiveUser);
+    } catch (IllegalStateException ise) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body("❌ " + ise.getMessage());
+    } catch (SecurityException se) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body("❌ " + se.getMessage());
+    }
 
-        // 3) UPDATE
-        try {
-            noteService.update(id, req, effectiveUser);
-        } catch (IllegalStateException ise) {
-            return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("❌ " + ise.getMessage());
-        } catch (SecurityException se) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("❌ " + se.getMessage());
-        }
+    // 4) GESTIONE UTENTI (solo autore, e solo se indicati)
+    if (isAutore(n, effectiveUser) && req.getUtentiCondivisi() != null) {
 
-        // 4) CARTELLA (solo se cambiata)
-        if (req.getCartella() != null &&
-                !Objects.equals(n.getCartella(), req.getCartella())) {
-
-            n.setCartella(req.getCartella().isBlank() ? null : req.getCartella());
-            noteService.save(n);
-        }
-
-        // 5) AGGIUNTA UTENTI (solo autore)
-        if (isAutore(n, effectiveUser) && req.getUtentiCondivisi() != null) {
-
-            Set<String> nuovi = new HashSet<>();
-
-            for (String u : req.getUtentiCondivisi()) {
-                if (u != null && !u.isBlank()) {
-                    String norm = normalizeUser(u);
-
-                    if (!n.getUtentiCondivisi().contains(norm)) {
-                        nuovi.add(norm);
-                    }
+        Set<String> nuovi = new HashSet<>();
+        for (String u : req.getUtentiCondivisi()) {
+            if (u != null && !u.isBlank()) {
+                String norm = normalizeUser(u);
+                if (!n.getUtentiCondivisi().contains(norm)) {
+                    nuovi.add(norm);
                 }
             }
-
-            if (!nuovi.isEmpty()) {
-                noteService.addUsersToShare(id, nuovi);
-            }
         }
 
-        // 6) RILASCIA LOCK DOPO UPDATE
-        noteService.unlock(id, effectiveUser);
-        return ResponseEntity.ok("✏️ Nota aggiornata con successo.");
+        if (!nuovi.isEmpty()) {
+            noteService.addUsersToShare(id, nuovi);
+        }
     }
+
+    // 5) RILASCIO LOCK
+    noteService.unlock(id, effectiveUser);
+
+    return ResponseEntity.ok("✏️ Nota aggiornata con successo.");
+}
+
 
     // ============================================================
     // DELETE - ELIMINAZIONE NOTA

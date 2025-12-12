@@ -1,14 +1,15 @@
 package com.sweng.notes.dto;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
- * DTO per aggiungere utenti alla condivisione di una nota esistente.
+ * DTO per aggiungere nuovi utenti alla condivisione di una nota.
  *
- * Regole :
+ * Regole Sprint 5:
  * - Si possono SOLO aggiungere utenti.
+ * - Non è possibile rimuoverli tramite questo DTO.
  * - Il permesso della nota NON viene modificato tramite questo DTO.
- * - La rimozione è effettuata esclusivamente tramite /removeSelf.
  */
 public class ShareNoteRequest {
 
@@ -19,6 +20,18 @@ public class ShareNoteRequest {
     }
 
     public void setUtentiCondivisi(List<String> utentiCondivisi) {
-        this.utentiCondivisi = utentiCondivisi;
+        if (utentiCondivisi == null) {
+            this.utentiCondivisi = List.of();
+            return;
+        }
+
+        List<String> norm = new ArrayList<>();
+        for (String u : utentiCondivisi) {
+            if (u != null && !u.isBlank()) {
+                norm.add(u.trim().toLowerCase());
+            }
+        }
+
+        this.utentiCondivisi = norm;
     }
 }

@@ -1,23 +1,27 @@
 package com.sweng.notes.dto;
 
+import com.sweng.notes.model.Cartella;
+
 /**
  * DTO di risposta per la rappresentazione delle cartelle lato frontend.
  * Contiene:
- * - nome della cartella
+ * - nome (normalizzato)
  * - colore associato
- * - creatore (username)
+ * - creatore (username normalizzato)
  *
- * Viene usato dal frontend per popolare la lista delle cartelle.
- * Nessuna logica applicativa: solo trasporto dati.
+ *
  */
 public class FolderResponse {
 
-    private String nome;
-    private String colore;
-    private String creatore;
+    private final String nome;
+    private final String colore;
+    private final String creatore;
 
-    /** Costruttore vuoto richiesto per Jackson/serializzazione */
+    /** Costruttore vuoto richiesto da Jackson */
     public FolderResponse() {
+        this.nome = null;
+        this.colore = null;
+        this.creatore = null;
     }
 
     /** Costruttore completo */
@@ -27,10 +31,19 @@ public class FolderResponse {
         this.creatore = creatore != null ? creatore.trim().toLowerCase() : null;
     }
 
+    public static FolderResponse fromCartella(Cartella c) {
+        if (c == null) {
+            return new FolderResponse(null, null, null);
+        }
+        return new FolderResponse(
+                c.getNome(),
+                c.getColore(),
+                c.getCreatore());
+    }
+
     // ============================================================
     // GETTER
     // ============================================================
-
 
     public String getNome() {
         return nome;

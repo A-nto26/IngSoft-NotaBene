@@ -11,10 +11,9 @@ import java.util.List;
  * - cartella
  * - coloreCartella
  *
- * Campi NON modificabili:
- * - creatore
- * - permesso (fissato alla creazione)
- * - utentiCondivisi (gestiti solo tramite /share e /removeSelf)
+ * utentiCondivisi:
+ *   Ignorato nello /update — non modifica la condivisione.
+ *   La gestione reale avviene SOLO tramite /share e /removeSelf.
  *
  * versionExpected:
  *   indica la versione che il frontend si aspetta di modificare.
@@ -25,12 +24,16 @@ public class NoteUpdateRequest {
     private String titolo;
     private String contenuto;
     private String cartella;
+
+    // Ignorato dall'update: rimane per compatibilità frontend
     private List<String> utentiCondivisi;
+
     private String coloreCartella;
 
-    // Versione attesa dal frontend per controllo conflitti
+    // Versione attesa dal frontend per il controllo di consistenza
     private Integer versionExpected;
 
+    private String permesso;
     // ==============================
     // Getter e Setter
     // ==============================
@@ -82,4 +85,12 @@ public class NoteUpdateRequest {
     public void setVersionExpected(Integer versionExpected) {
         this.versionExpected = versionExpected;
     }
+
+    public String getPermesso() {
+    return permesso;
+    }
+
+    public void setPermesso(String permesso) {
+        this.permesso = permesso;
+     }
 }

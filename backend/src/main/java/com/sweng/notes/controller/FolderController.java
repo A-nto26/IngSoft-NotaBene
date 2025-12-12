@@ -1,6 +1,7 @@
 package com.sweng.notes.controller;
 
 import com.sweng.notes.dto.FolderRequest;
+import com.sweng.notes.dto.FolderResponse;
 import com.sweng.notes.model.Cartella;
 import com.sweng.notes.model.Note;
 import com.sweng.notes.service.FolderService;
@@ -40,9 +41,15 @@ public class FolderController {
 
     /** Restituisce tutte le cartelle persistenti */
     @GetMapping
-    public ResponseEntity<List<Cartella>> getAllFolders() {
+    public ResponseEntity<List<FolderResponse>> getAllFolders() {
+
         List<Cartella> folders = folderService.getAllFolders();
-        return ResponseEntity.ok(folders);
+
+        List<FolderResponse> resp = folders.stream()
+                .map(FolderResponse::fromCartella)
+                .toList();
+
+        return ResponseEntity.ok(resp);
     }
 
     /*
@@ -64,21 +71,17 @@ public class FolderController {
     /** Crea una nuova cartella persistente con colore e autore */
     @PostMapping
     public ResponseEntity<String> createFolder(@RequestBody FolderRequest req) {
+
         if (req.getNome() == null || req.getNome().isBlank()) {
             return ResponseEntity.badRequest().body("⚠️ Il nome della cartella è obbligatorio.");
         }
 
-        String colore = (req.getColore() == null || req.getColore().isBlank())
-                ? "#FFD700"
-                : req.getColore();
-
-        String creatore = (req.getCreatore() == null || req.getCreatore().isBlank())
-                ? "system"
-                : req.getCreatore();
-
+        String nome = req.getNome();
+        String colore = req.getColore();
+        String creatore = req.getCreatore();
         try {
-            folderService.createFolder(req.getNome().trim().toLowerCase(), colore, creatore);
-            return ResponseEntity.ok("📁 Cartella '" + req.getNome() + "' creata con colore " + colore);
+            folderService.createFolder(nome, colore, creatore);
+            return ResponseEntity.ok("📁 Cartella '" + nome + "' creata.");
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(409).body(e.getMessage());
         }
