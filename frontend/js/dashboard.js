@@ -2815,21 +2815,6 @@ async function duplicaNota(id) {
     }
 
     // ========================================
-    //  GESTIONE SAVE BUTTON
-    // ========================================
-    // Recupera il bottone salva (NON clonare, usa un approccio diverso)
-    const btnSalva = document.getElementById("saveNoteBtn");
-    
-    // Rimuovi tutti i listener precedenti usando replaceWith
-    const cleanSaveBtn = btnSalva.cloneNode(true);
-    btnSalva.replaceWith(cleanSaveBtn);
-    
-    // Aggiungi il NUOVO listener una sola volta al bottone pulito
-    cleanSaveBtn.addEventListener("click", async () => {
-      await salvaNotaDuplicata();
-    });
-
-    // ========================================
     //  SETUP UI MODALE
     // ========================================
     modal.removeAttribute("aria-hidden");
@@ -2837,8 +2822,8 @@ async function duplicaNota(id) {
     modal.style.display = "flex";
 
     modalTitle.textContent = "📄 Duplica nota";
-    cleanSaveBtn.style.display = "inline-block";
-    cleanSaveBtn.textContent = "💾 CREA COPIA";
+    saveNoteBtn.style.display = "inline-block";
+    saveNoteBtn.textContent = "💾 CREA COPIA";
     cancelNoteBtn.style.display = "inline-block";
 
     // ========================================

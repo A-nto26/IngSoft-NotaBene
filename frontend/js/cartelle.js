@@ -38,12 +38,6 @@ function openNoteModal(nota) {
   modalTitle.textContent = nota.titolo;
   modalContent.textContent = nota.contenuto;
 
-  // Aggiungi un evento per chiudere la modale quando clicchi fuori
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal || e.target === closePreviewBtn) {
-      modal.style.display = "none";
-    }
-  });
 }
 
 
@@ -268,6 +262,13 @@ async function caricaNote() {
   try {
     const res = await fetch(`${API_NOTES}/visible/${encodeURIComponent(user)}`);
     tutteLeNote = await res.json();
+
+    tutteLeNote.forEach(n => {
+      if (typeof n.versione === "number") {
+        window._noteVersions[n.id] = n.versione;
+      }
+    });
+
     generaCartelle();
     mostraNote();
   } catch (err) {
@@ -370,10 +371,11 @@ function mostraNote() {
   const card = document.createElement("div");
   card.className = "note-card";
 
-  // Aggiungi un evento per aprire la nota in versione estesa (modale o sezione)
-  card.addEventListener("click", () => {
-    openNoteModal(nota);  // La modale si apre solo quando l'utente clicca sulla carta
+  card.addEventListener("click", async () => {
+  const notaAggiornata = await ensureLatestVersion(nota, user);
+  openNoteModal(notaAggiornata);
   });
+
 
   // ==========================
   //  PERMESSO NORMALIZZATO
@@ -430,10 +432,6 @@ function mostraNote() {
     <p>${nota.contenuto}</p>
   `;
 
-  // Aggiungi evento per aprire la nota in versione estesa (modale o sezione)
-  card.addEventListener("click", () => {
-    openNoteModal(nota);
-  });
 
   // Aggiungi evento per eliminare la nota
   const menu = card.querySelector(".note-menu");

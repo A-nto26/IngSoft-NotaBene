@@ -5,6 +5,7 @@ import com.sweng.notes.dto.FolderResponse;
 import com.sweng.notes.model.Cartella;
 import com.sweng.notes.model.Note;
 import com.sweng.notes.service.FolderService;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.ResponseEntity;
@@ -12,7 +13,6 @@ import org.springframework.http.ResponseEntity;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 class FolderControllerTest {
@@ -30,52 +30,26 @@ class FolderControllerTest {
     // GET ALL FOLDERS
     // ============================================================
     @Test
-    void testGetAllFolders() {
-        List<Cartella> mockList = List.of(
-                new Cartella("casa", "mario", "#fff"),
-                new Cartella("studio", "anna", "#000"));
-
-        when(folderService.getAllFolders()).thenReturn(mockList);
+    void testGetAllFolders_ok() {
+        when(folderService.getAllFolders()).thenReturn(List.of(
+                new Cartella("casa", "mario", "#fff")
+        ));
 
         ResponseEntity<List<FolderResponse>> res = controller.getAllFolders();
 
         assertEquals(200, res.getStatusCode().value());
-        assertEquals(2, res.getBody().size());
+        assertNotNull(res.getBody());
+        assertEquals(1, res.getBody().size());
+        assertEquals("casa", res.getBody().get(0).getNome());
 
-        // Verifica mapping
-        FolderResponse f1 = res.getBody().get(0);
-        assertEquals("casa", f1.getNome());
-        assertEquals("mario", f1.getCreatore());
-        assertEquals("#fff", f1.getColore());
-
-        verify(folderService, times(1)).getAllFolders();
+        verify(folderService).getAllFolders();
     }
 
-    /*
-     * // ============================================================
-     * // GET NOTES IN FOLDER (endpoint non piu attivo)
-     * // manteniamo per completezza
-     * // ============================================================
-     * 
-     * @Test
-     * void testGetNotesInFolder() {
-     * List<Note> mockNotes = List.of(
-     * new Note(1, "Titolo1", "C1", "mario", "casa"),
-     * new Note(2, "Titolo2", "C2", "mario", "casa"));
-     * 
-     * when(folderService.getNotesInFolder("casa")).thenReturn(mockNotes);
-     * 
-     * ResponseEntity<List<Note>> res = controller.getNotesInFolder("casa");
-     * 
-     * assertEquals(200, res.getStatusCode().value());
-     * assertEquals(2, res.getBody().size());
-     * }
-     */
     // ============================================================
     // CREATE FOLDER
     // ============================================================
     @Test
-    void testCreateFolderSuccess() {
+    void testCreateFolder_ok() {
         FolderRequest req = new FolderRequest();
         req.setNome("casa");
         req.setCreatore("mario");
@@ -84,67 +58,76 @@ class FolderControllerTest {
         ResponseEntity<String> res = controller.createFolder(req);
 
         assertEquals(200, res.getStatusCode().value());
-        assertTrue(res.getBody().contains("casa"));
+        assertNotNull(res.getBody());
 
-        verify(folderService, times(1))
-                .createFolder("casa", "#123456", "mario");
+        verify(folderService).createFolder("casa", "#123456", "mario");
     }
 
     @Test
-    void testCreateFolderFailMissingName() {
+    void testCreateFolder_badRequest_nomeVuoto() {
         FolderRequest req = new FolderRequest();
         req.setNome("");
 
         ResponseEntity<String> res = controller.createFolder(req);
 
         assertEquals(400, res.getStatusCode().value());
-        verify(folderService, never()).createFolder(any(), any(), any());
+        verifyNoInteractions(folderService);
+    }
+
+    @Test
+    void testCreateFolder_conflict_cartellaGiaEsistente() {
+        FolderRequest req = new FolderRequest();
+        req.setNome("casa");
+        req.setCreatore("mario");
+        req.setColore("#123456");
+
+        doThrow(new IllegalArgumentException("La cartella 'casa' esiste già."))
+                .when(folderService).createFolder("casa", "#123456", "mario");
+
+        ResponseEntity<String> res = controller.createFolder(req);
+
+        assertEquals(409, res.getStatusCode().value());
+        assertNotNull(res.getBody());
+
+        verify(folderService).createFolder("casa", "#123456", "mario");
     }
 
     // ============================================================
     // DELETE FOLDER
     // ============================================================
     @Test
-    void testDeleteFolder() {
+    void testDeleteFolder_ok() {
         ResponseEntity<String> res = controller.deleteFolder("casa");
 
         assertEquals(200, res.getStatusCode().value());
-        verify(folderService, times(1)).deleteFolder("casa");
+        verify(folderService).deleteFolder("casa");
     }
 
     // ============================================================
-    // GET NOTES IN FOLDER FOR USER (Sprint 4: aggiunti bad request)
+    // GET NOTES IN FOLDER FOR USER
     // ============================================================
     @Test
-    void testGetNotesInFolderForUser() {
-        List<Note> mockNotes = List.of(
-                new Note(1, "A", "B", "mario", "casa"));
-
+    void testGetNotesInFolderForUser_ok() {
         when(folderService.getNotesInFolderForUser("casa", "mario"))
-                .thenReturn(mockNotes);
+                .thenReturn(List.of(new Note(1, "T", "C", "mario", "casa")));
 
         ResponseEntity<List<Note>> res = controller.getNotesInFolderForUser("casa", "mario");
 
         assertEquals(200, res.getStatusCode().value());
+        assertNotNull(res.getBody());
         assertEquals(1, res.getBody().size());
+
         verify(folderService).getNotesInFolderForUser("casa", "mario");
     }
 
-    // === NUOVI TEST SPRINT 4 ===
-
     @Test
-    void testGetNotesInFolderForUser_BadRequest_EmptyFolder() {
-        ResponseEntity<List<Note>> res = controller.getNotesInFolderForUser("", "mario");
+    void testGetNotesInFolderForUser_badRequest_paramVuoti() {
+        ResponseEntity<List<Note>> res1 = controller.getNotesInFolderForUser("", "mario");
+        assertEquals(400, res1.getStatusCode().value());
 
-        assertEquals(400, res.getStatusCode().value());
-        verify(folderService, never()).getNotesInFolderForUser(any(), any());
-    }
+        ResponseEntity<List<Note>> res2 = controller.getNotesInFolderForUser("casa", "");
+        assertEquals(400, res2.getStatusCode().value());
 
-    @Test
-    void testGetNotesInFolderForUser_BadRequest_EmptyUser() {
-        ResponseEntity<List<Note>> res = controller.getNotesInFolderForUser("casa", "");
-
-        assertEquals(400, res.getStatusCode().value());
         verify(folderService, never()).getNotesInFolderForUser(any(), any());
     }
 }

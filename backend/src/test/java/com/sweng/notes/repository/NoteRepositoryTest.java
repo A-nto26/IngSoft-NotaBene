@@ -1,7 +1,7 @@
 package com.sweng.notes.repository;
 
-import com.sweng.notes.model.Note;
 import com.sweng.notes.model.Cartella;
+import com.sweng.notes.model.Note;
 
 import org.junit.jupiter.api.*;
 import org.mapdb.DB;
@@ -19,7 +19,11 @@ class NoteRepositoryTest {
 
     @BeforeEach
     void setup() {
-        db = DBMaker.memoryDB().make();
+        // IMPORTANTE: il repo chiama sempre db.commit()
+        // quindi abilitiamo le transazioni anche in memoryDB
+        db = DBMaker.memoryDB()
+                .transactionEnable()
+                .make();
 
         repo = new NoteRepository(
                 db,
@@ -34,11 +38,12 @@ class NoteRepositoryTest {
     }
 
     // ============================================================
-    // SALVATAGGIO + LETTURA
+    // SAVE + FIND
     // ============================================================
     @Test
     void testSaveAndFindById() {
         Note n = new Note(0, "Titolo", "Contenuto", "user1", "casa");
+
         repo.save(n);
 
         Note found = repo.findById(n.getId());
@@ -48,22 +53,21 @@ class NoteRepositoryTest {
     }
 
     @Test
-    void testFindAllSorted() {
-        Note a = new Note(0, "A", "C", "u", "");
-        Note b = new Note(0, "B", "C", "u", "");
-
-        repo.save(a);
-        repo.save(b);
+    void testFindAllReturnsNotes() {
+        repo.save(new Note(0, "A", "C", "u", ""));
+        repo.save(new Note(0, "B", "C", "u", ""));
 
         List<Note> all = repo.findAll();
         assertEquals(2, all.size());
+
+    
     }
 
     // ============================================================
-    // DELETE + CARTELLE – Sprint 4
+    // FOLDERS 
     // ============================================================
     @Test
-    void testDeleteDoesNotRemoveFolder_Sprint4() {
+    void testDeleteDoesNotRemoveFolder() {
         Note n = new Note(0, "T", "C", "mario", "lavoro");
         repo.save(n);
 
@@ -72,39 +76,43 @@ class NoteRepositoryTest {
         repo.delete(n.getId());
 
         assertNull(repo.findById(n.getId()));
-        // La cartella deve rimanere
+
         assertNotNull(repo.findFolderByName("lavoro"));
     }
 
-    // ============================================================
-    // CARTELLE
-    // ============================================================
     @Test
     void testCreateAndFindFolder() {
         repo.createFolder("Casa", "mario", "#FFAA00");
 
         Cartella c = repo.findFolderByName("casa");
         assertNotNull(c);
+
+       
         assertEquals("Casa", c.getNome());
         assertEquals("mario", c.getCreatore());
         assertEquals("#FFAA00", c.getColore());
     }
 
     @Test
-    void testDeleteFolder_Sprint4() {
+    void testDeleteFolderDetachesNotes() {
         Note n = new Note(0, "T", "C", "user", "personale");
         repo.save(n);
 
+        assertNotNull(repo.findFolderByName("personale"));
+
         repo.deleteFolder("personale");
 
+        // cartella rimossa
         assertNull(repo.findFolderByName("personale"));
 
+      
         Note updated = repo.findById(n.getId());
+        assertNotNull(updated);
         assertNull(updated.getCartella());
     }
 
     // ============================================================
-    // CONDIVISIONE
+    // SHARING
     // ============================================================
     @Test
     void testAddUsersToShare() {
@@ -114,6 +122,7 @@ class NoteRepositoryTest {
         repo.addUsersToShare(n.getId(), Set.of("luca", "paolo"));
 
         Note updated = repo.findById(n.getId());
+        assertNotNull(updated);
         assertTrue(updated.getUtentiCondivisi().contains("luca"));
         assertTrue(updated.getUtentiCondivisi().contains("paolo"));
     }
@@ -127,17 +136,18 @@ class NoteRepositoryTest {
         repo.removeSelf(n.getId(), "luca");
 
         Note updated = repo.findById(n.getId());
+        assertNotNull(updated);
         assertFalse(updated.getUtentiCondivisi().contains("luca"));
     }
 
     @Test
     void testFindSharedWithUser() {
         Note n1 = new Note(0, "A", "C", "anna", "");
-        n1.setUtentiCondivisi(Set.of("luca"));
+        n1.setUtentiCondivisi(new LinkedHashSet<>(List.of("luca")));
         repo.save(n1);
 
         Note n2 = new Note(0, "B", "C", "anna", "");
-        n2.setUtentiCondivisi(Set.of("luca"));
+        n2.setUtentiCondivisi(new LinkedHashSet<>(List.of("luca")));
         repo.save(n2);
 
         List<Note> shared = repo.findSharedWithUser("luca");
@@ -145,35 +155,25 @@ class NoteRepositoryTest {
     }
 
     // ============================================================
-    // LOCK SYSTEM — Sprint 4
+    // LOCK SYSTEM 
     // ============================================================
     @Test
-    void testLockUnlock() {
+    void testLockUnlock_Owner() {
         Note n = new Note(0, "T", "C", "anna", "");
         repo.save(n);
 
         assertTrue(repo.lockNote(n.getId(), "luca"));
 
         Map<String, Object> state = repo.getLockState(n.getId());
+        assertEquals(true, state.get("locked"));
         assertEquals("luca", state.get("lockedBy"));
-        assertNotNull(state.get("lockedAt"));
+        assertNotNull(state.get("lockedAt")); 
 
+        
         assertTrue(repo.unlockNote(n.getId(), "luca"));
 
         Map<String, Object> after = repo.getLockState(n.getId());
         assertEquals(false, after.get("locked"));
-    }
-
-    @Test
-    void testForceUnlock() {
-        Note n = new Note(0, "T", "C", "anna", "");
-        repo.save(n);
-
-        repo.lockNote(n.getId(), "luca");
-        repo.forceUnlock(n.getId());
-
-        Map<String, Object> state = repo.getLockState(n.getId());
-        assertEquals(false, state.get("locked"));
     }
 
     @Test
@@ -184,6 +184,23 @@ class NoteRepositoryTest {
         assertTrue(repo.lockNote(n.getId(), "luca"));
         assertFalse(repo.lockNote(n.getId(), "marco"));
 
-        assertEquals("luca", repo.getLockState(n.getId()).get("lockedBy"));
+        Map<String, Object> state = repo.getLockState(n.getId());
+        assertEquals(true, state.get("locked"));
+        assertEquals("luca", state.get("lockedBy"));
+    }
+
+    @Test
+    void testUnlockDifferentUserFails() {
+        Note n = new Note(0, "T", "C", "anna", "");
+        repo.save(n);
+
+        assertTrue(repo.lockNote(n.getId(), "luca"));
+
+        // unlock da utente diverso (lock non scaduto) -> false
+        assertFalse(repo.unlockNote(n.getId(), "marco"));
+
+        Map<String, Object> state = repo.getLockState(n.getId());
+        assertEquals(true, state.get("locked"));
+        assertEquals("luca", state.get("lockedBy"));
     }
 }

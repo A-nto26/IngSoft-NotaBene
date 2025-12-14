@@ -47,12 +47,29 @@ public class UserDBInspector {
 
     public static void main(String[] args) {
 
+        // =====================================================
+        //  TROVA users.db in modo robusto (root / backend / ecc.)
+        // =====================================================
         File dbFile = new File("data/users.db");
+
+        // Se lanci da root progetto, spesso il db è in backend/data/users.db
+        if (!dbFile.exists()) {
+            dbFile = new File("backend/data/users.db");
+        }
+
+        // Fallback extra: se lanci da backend/, allora "data/users.db" va già bene,
+        // ma teniamo anche questo per sicurezza
+        if (!dbFile.exists()) {
+            dbFile = new File("backend\\data\\users.db"); // Windows-safe
+        }
 
         if (!dbFile.exists()) {
             System.out.println("❌ ERRORE: Il file users.db non esiste!");
+            System.out.println("   Cercato in: data/users.db e backend/data/users.db");
             return;
         }
+
+        System.out.println("✅ DB trovato: " + dbFile.getPath());
 
         System.out.println("\n======================================");
         System.out.println("   👤 ISPEZIONE DATABASE UTENTI");
