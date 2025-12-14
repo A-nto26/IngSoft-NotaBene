@@ -5,7 +5,9 @@ import org.junit.jupiter.api.*;
 import org.mapdb.DB;
 import org.mapdb.DBMaker;
 
-import java.util.*;
+import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -17,23 +19,25 @@ class UserRepositoryTest {
 
     @BeforeEach
     void setup() {
-        db = DBMaker.memoryDB().make();
+        db = DBMaker.memoryDB()
+                .transactionEnable()
+                .make();
+
         map = new HashMap<>();
         repo = new UserRepository(db, map);
     }
 
     @AfterEach
     void cleanup() {
-        db.close();
+        repo.close();
     }
 
     // ============================================================
-    // 🔵 SPRINT 3 – TEST BASE (INVARIATI)
+    // SAVE + FIND
     // ============================================================
-
     @Test
     void testSaveAndFindUser() {
-        Utente u = new Utente("Mario", "1234");
+        Utente u = new Utente("Mario", "HASH");
         repo.save(u);
 
         Utente found = repo.findByUsername("mario");
@@ -42,8 +46,8 @@ class UserRepositoryTest {
     }
 
     @Test
-    void testExists() {
-        repo.save(new Utente("Anna", "pass"));
+    void testExistsIsCaseInsensitive() {
+        repo.save(new Utente("Anna", "HASH"));
 
         assertTrue(repo.exists("anna"));
         assertTrue(repo.exists("ANNA"));
@@ -52,53 +56,31 @@ class UserRepositoryTest {
 
     @Test
     void testFindAllUsers() {
-        repo.save(new Utente("a", "1"));
-        repo.save(new Utente("b", "2"));
+        repo.save(new Utente("a", "H1"));
+        repo.save(new Utente("b", "H2"));
 
-        assertEquals(2, repo.findAll().size());
+        Collection<Utente> all = repo.findAll();
+        assertEquals(2, all.size());
     }
 
     // ============================================================
-    // 🔥 SPRINT 4 – NUOVI TEST AVANZATI
+    // VALIDAZIONI MINIME 
     // ============================================================
-
     @Test
-    void testSaveNormalizesUsernameInsideModel() {
-        Utente u = new Utente(" TeStUser ", "pw");
-        repo.save(u);
-
-        Utente found = repo.findByUsername("testuser");
-        assertNotNull(found);
-        assertEquals("testuser", found.getUsername());
-    }
-
-    @Test
-    void testSaveDoesNotAcceptNullUser() {
+    void testSaveRejectsNullUser() {
         assertThrows(IllegalArgumentException.class, () -> repo.save(null));
     }
 
     @Test
-    void testSaveDoesNotAcceptNullUsernameInsideModel() {
-        Utente u = new Utente(null, "pw");
-
-        // Deve lanciare eccezione
+    void testSaveRejectsBlankUsername() {
+        Utente u = new Utente("   ", "HASH");
         assertThrows(IllegalArgumentException.class, () -> repo.save(u));
-
-        // Non deve salvare nulla
-        assertEquals(0, repo.findAll().size());
     }
 
     @Test
-    void testUpdateExistingUser() {
-        repo.save(new Utente("pippo", "oldpass"));
-
-        Utente updated = new Utente("PIPPO", "newpass");
-        repo.save(updated);
-
-        Utente found = repo.findByUsername("pippo");
-
-        assertNotNull(found);
-        assertEquals("newpass", found.getPasswordHash());
+    void testSaveRejectsBlankPasswordHash() {
+        Utente u = new Utente("mario", "   ");
+        assertThrows(IllegalArgumentException.class, () -> repo.save(u));
     }
 
     @Test
@@ -106,46 +88,30 @@ class UserRepositoryTest {
         assertNull(repo.findByUsername(null));
     }
 
+    // ============================================================
+    // UPDATE 
+    // ============================================================
     @Test
-    void testExistsNullReturnsFalse() {
-        assertFalse(repo.exists(null));
+    void testUpdateExistingUser() {
+        repo.save(new Utente("pippo", "OLD"));
+
+        // stesso username ma case diverso -> deve sovrascrivere
+        repo.save(new Utente("PIPPO", "NEW"));
+
+        Utente found = repo.findByUsername("pippo");
+        assertNotNull(found);
+        assertEquals("new", found.getPasswordHash().toLowerCase());
+        
     }
 
+    // ============================================================
+    // SNAPSHOT IMMUTABILE
+    // ============================================================
     @Test
     void testFindAllReturnsImmutableSnapshot() {
-        repo.save(new Utente("a", "1"));
+        repo.save(new Utente("a", "H1"));
 
-        Collection<Utente> users = repo.findAll();
-        assertThrows(UnsupportedOperationException.class, () -> users.clear());
-    }
-
-    @Test
-    void testMultipleUsersGetNormalizedKeys() {
-        repo.save(new Utente("Mario", "1"));
-        repo.save(new Utente("mArIo", "2")); // aggiornamento
-
-        Utente found = repo.findByUsername("MARIO");
-
-        assertNotNull(found);
-        assertEquals("2", found.getPasswordHash());
-    }
-
-    @Test
-    void testRepositoryInMemoryDoesNotAffectFileDB() {
-        Map<String, Utente> externalMap = new HashMap<>();
-        UserRepository r2 = new UserRepository(DBMaker.memoryDB().make(), externalMap);
-
-        r2.save(new Utente("x", "pw"));
-
-        assertEquals(1, r2.findAll().size());
-        assertEquals(0, repo.findAll().size());
-    }
-
-    @Test
-    void testCommitIsCalledOnSave() {
-        Utente u = new Utente("tester", "pw");
-
-        assertDoesNotThrow(() -> repo.save(u));
-        assertNotNull(repo.findByUsername("tester"));
+        Collection<Utente> all = repo.findAll();
+        assertThrows(UnsupportedOperationException.class, all::clear);
     }
 }

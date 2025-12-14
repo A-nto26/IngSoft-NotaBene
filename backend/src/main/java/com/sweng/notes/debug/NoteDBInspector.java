@@ -14,10 +14,9 @@ public class NoteDBInspector {
             .setPrettyPrinting()
             .serializeNulls()
             .registerTypeAdapter(LocalDateTime.class,
-                    (JsonSerializer<LocalDateTime>) (value, type, context) ->
-                            new JsonPrimitive(value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)))
+                    (JsonSerializer<LocalDateTime>) (value, type,
+                            context) -> new JsonPrimitive(value.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)))
             .create();
-
 
     private static final Serializer<Note> NOTE_SERIALIZER = new Serializer<Note>() {
 
@@ -52,12 +51,21 @@ public class NoteDBInspector {
 
     public static void main(String[] args) {
 
-        File dbFile = new File("data/notes.db");
+        // Funziona sia se lanci da /backend che dalla root del progetto
+        File dbFile = new File("data/notes.db"); // caso: working dir = backend
+        if (!dbFile.exists()) {
+            dbFile = new File("backend/data/notes.db"); // caso: working dir = root repo
+        }
 
         if (!dbFile.exists()) {
             System.out.println("❌ ERRORE: Il file notes.db non esiste!");
+            System.out.println("   Percorsi provati:");
+            System.out.println("   - data/notes.db");
+            System.out.println("   - backend/data/notes.db");
             return;
         }
+
+        System.out.println("✅ DB trovato: " + dbFile.getPath());
 
         System.out.println("\n======================================");
         System.out.println("   📝 ISPEZIONE DATABASE NOTE (notes.db)");

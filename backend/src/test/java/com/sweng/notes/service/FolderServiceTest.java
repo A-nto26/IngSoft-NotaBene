@@ -2,18 +2,17 @@ package com.sweng.notes.service;
 
 import com.sweng.notes.model.Cartella;
 import com.sweng.notes.model.Note;
-import com.sweng.notes.model.Lettura;
-import com.sweng.notes.model.Scrittura;
 import com.sweng.notes.repository.NoteRepository;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.mockito.ArgumentMatchers.any;
 
 class FolderServiceTest {
 
@@ -29,164 +28,138 @@ class FolderServiceTest {
     // ============================================================
     // GET ALL FOLDERS
     // ============================================================
+
     @Test
-    void testGetAllFolders() {
-        List<Cartella> mockList = List.of(
-                new Cartella("casa", "mario", "#fff"),
-                new Cartella("studio", "anna", "#000"));
+    void testGetAllFolders_ok() {
+        when(noteRepo.findAllFolders()).thenReturn(List.of(
+                new Cartella("casa", "mario", "#fff")
+        ));
 
-        when(noteRepo.findAllFolders()).thenReturn(mockList);
+        List<Cartella> res = folderService.getAllFolders();
 
-        List<Cartella> result = folderService.getAllFolders();
-
-        assertEquals(2, result.size());
+        assertNotNull(res);
+        assertEquals(1, res.size());
         verify(noteRepo).findAllFolders();
     }
 
     // ============================================================
     // GET NOTES IN FOLDER
     // ============================================================
+
     @Test
-    void testGetNotesInFolder() {
-        List<Note> mockNotes = List.of(
-                new Note(1, "T1", "C1", "mario", "casa"),
-                new Note(2, "T2", "C2", "mario", "casa"));
+    void testGetNotesInFolder_ok_normalizzaNome() {
+        when(noteRepo.findByCartella("casa"))
+                .thenReturn(List.of(new Note(1, "T", "C", "mario", "casa")));
 
-        when(noteRepo.findByCartella("casa")).thenReturn(mockNotes);
+        List<Note> res = folderService.getNotesInFolder("  CASA  ");
 
-        List<Note> result = folderService.getNotesInFolder("casa");
-
-        assertEquals(2, result.size());
+        assertNotNull(res);
+        assertEquals(1, res.size());
         verify(noteRepo).findByCartella("casa");
     }
 
     @Test
-    void testGetNotesInFolderEmptyName() {
-        List<Note> result = folderService.getNotesInFolder("  ");
+    void testGetNotesInFolder_nomeVuoto_restituisceVuoto() {
+        List<Note> res = folderService.getNotesInFolder("   ");
 
-        assertTrue(result.isEmpty());
-        verify(noteRepo, never()).findByCartella(any());
+        assertNotNull(res);
+        assertTrue(res.isEmpty());
+        verify(noteRepo, never()).findByCartella(anyString());
     }
 
     // ============================================================
     // CREATE FOLDER
     // ============================================================
+
     @Test
-    void testCreateFolderSuccess() {
-        folderService.createFolder("casa", "#123456", "mario");
+    void testCreateFolder_ok_conColore() {
+        when(noteRepo.findFolderByName("casa")).thenReturn(null);
+
+        folderService.createFolder(" CASA ", "#123456", " MARIO ");
 
         verify(noteRepo).createFolder("casa", "mario", "#123456");
     }
 
     @Test
-    void testCreateFolderFailMissingName() {
-        assertThrows(IllegalArgumentException.class,
-                () -> folderService.createFolder(" ", "#fff", "mario"));
+    void testCreateFolder_ok_defaultColor() {
+        when(noteRepo.findFolderByName("progetti")).thenReturn(null);
 
-        verify(noteRepo, never()).createFolder(any(), any(), any());
-    }
-
-    @Test
-    void testCreateFolderDefaultColor() {
-        folderService.createFolder("progetti", null, "luca");
+        folderService.createFolder(" Progetti ", "  ", " Luca ");
 
         verify(noteRepo).createFolder("progetti", "luca", "#FFD700");
     }
 
     @Test
-    void testCreateFolderNameNormalization() {
-        folderService.createFolder("   LAVORO  ", "#111111", "gigi");
+    void testCreateFolder_nomeMancante_lanciaEccezione() {
+        assertThrows(IllegalArgumentException.class,
+                () -> folderService.createFolder("   ", "#fff", "mario"));
 
-        verify(noteRepo).createFolder("lavoro", "gigi", "#111111");
+        verifyNoInteractions(noteRepo);
     }
 
-    // Cartella duplicata -> repo lancia IllegalArgumentException
     @Test
-    void testCreateFolderAlreadyExists() {
-        doThrow(new IllegalArgumentException("duplicate"))
-                .when(noteRepo).createFolder("casa", "mario", "#000");
+    void testCreateFolder_cartellaGiaEsistente_lanciaEccezione() {
+        when(noteRepo.findFolderByName("casa")).thenReturn(new Cartella("casa", "mario", "#fff"));
 
         assertThrows(IllegalArgumentException.class,
                 () -> folderService.createFolder("casa", "#000", "mario"));
+
+        verify(noteRepo).findFolderByName("casa");
+        verify(noteRepo, never()).createFolder(anyString(), anyString(), anyString());
     }
 
     // ============================================================
     // DELETE FOLDER
     // ============================================================
+
     @Test
-    void testDeleteFolder() {
-        folderService.deleteFolder("casa");
+    void testDeleteFolder_ok() {
+        folderService.deleteFolder(" CASA ");
+
         verify(noteRepo).deleteFolder("casa");
     }
 
     @Test
-    void testDeleteFolderEmptyName() {
-        folderService.deleteFolder("  ");
-        verify(noteRepo, never()).deleteFolder(any());
+    void testDeleteFolder_nomeVuoto_nonFaNulla() {
+        folderService.deleteFolder("   ");
+
+        verify(noteRepo, never()).deleteFolder(anyString());
     }
 
     // ============================================================
-    // GET VISIBLE NOTES FOR USER
+    // GET NOTES IN FOLDER FOR USER
     // ============================================================
 
     @Test
-    void testGetNotesInFolderForUserCreator() {
-        List<Note> mockNotes = List.of(
-                new Note(1, "A", "B", "mario", "casa"),
-                new Note(2, "C", "D", "anna", "casa"));
+    void testGetNotesInFolderForUser_ok_filtraPuoLeggere() {
+        Note leggibile = mock(Note.class);
+        when(leggibile.puoLeggere("mario")).thenReturn(true);
 
-        when(noteRepo.findByCartella("casa")).thenReturn(mockNotes);
+        Note nonLeggibile = mock(Note.class);
+        when(nonLeggibile.puoLeggere("mario")).thenReturn(false);
 
-        List<Note> result = folderService.getNotesInFolderForUser("casa", "mario");
+        when(noteRepo.findByCartella("casa"))
+                .thenReturn(List.of(leggibile, nonLeggibile));
 
-        assertEquals(1, result.size());
-        assertEquals("mario", result.get(0).getCreatore());
+        List<Note> res = folderService.getNotesInFolderForUser(" CASA ", " MARIO ");
+
+        assertNotNull(res);
+        assertEquals(1, res.size());
+        assertSame(leggibile, res.get(0));
+
+        verify(noteRepo).findByCartella("casa");
+        verify(leggibile).puoLeggere("mario");
+        verify(nonLeggibile).puoLeggere("mario");
     }
 
     @Test
-    void testGetNotesInFolderForUserSharedLettura() {
-        Note shared = new Note(1, "A", "B", "mario", "casa");
-        shared.getUtentiCondivisi().add("anna");
-        shared.setPermesso(new Lettura());
+    void testGetNotesInFolderForUser_parametriInvalidi_restituisceVuoto() {
+        List<Note> res1 = folderService.getNotesInFolderForUser("  ", "mario");
+        List<Note> res2 = folderService.getNotesInFolderForUser("casa", "  ");
 
-        when(noteRepo.findByCartella("casa")).thenReturn(List.of(shared));
+        assertEquals(Collections.emptyList(), res1);
+        assertEquals(Collections.emptyList(), res2);
 
-        List<Note> result = folderService.getNotesInFolderForUser("casa", "anna");
-
-        assertEquals(1, result.size());
-        assertEquals("A", result.get(0).getTitolo());
-    }
-
-    @Test
-    void testGetNotesInFolderForUserSharedScrittura() {
-        Note shared = new Note(1, "A", "B", "mario", "casa");
-        shared.getUtentiCondivisi().add("anna");
-        shared.setPermesso(new Scrittura());
-
-        when(noteRepo.findByCartella("casa")).thenReturn(List.of(shared));
-
-        List<Note> result = folderService.getNotesInFolderForUser("casa", "anna");
-
-        assertEquals(1, result.size());
-        assertEquals("A", result.get(0).getTitolo());
-    }
-
-    @Test
-    void testGetNotesInFolderForUserNoPermission() {
-        Note shared = new Note(1, "A", "B", "mario", "casa");
-        shared.getUtentiCondivisi().add("anna");
-        shared.setPermesso(null); // permesso nullo = privata
-
-        when(noteRepo.findByCartella("casa")).thenReturn(List.of(shared));
-
-        List<Note> result = folderService.getNotesInFolderForUser("casa", "anna");
-
-        assertTrue(result.isEmpty());
-    }
-
-    @Test
-    void testGetNotesInFolderForUserEmptyParams() {
-        assertTrue(folderService.getNotesInFolderForUser(" ", "mario").isEmpty());
-        assertTrue(folderService.getNotesInFolderForUser("casa", " ").isEmpty());
+        verify(noteRepo, never()).findByCartella(anyString());
     }
 }
